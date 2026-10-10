@@ -77,15 +77,6 @@ class TestClassical:
             classical.classical(y, p_lab[:-1], p_unlab)
 
 
-class TestNaiveRespondent:
-    def test_same_numbers_as_classical(self) -> None:
-        y, p_lab, p_unlab = _data(3)
-        a = classical.classical(y, p_lab, p_unlab)
-        b = classical.naive_respondent(y, p_lab, p_unlab)
-        assert (a.point, a.lower, a.upper, a.se) == (b.point, b.lower, b.upper, b.se)
-        assert b.method == "naive_respondent"
-
-
 class TestNaiveModel:
     def test_formula(self) -> None:
         y, p_lab, p_unlab = _data(4)

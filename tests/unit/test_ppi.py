@@ -357,16 +357,12 @@ def test_permutation_invariance(seed: int) -> None:
 def test_registry() -> None:
     assert set(estimators.REGISTRY) == {
         "classical",
-        "naive_respondent",
         "naive_model",
         "ppi",
         "ppi_pp",
         "ppi_crossfit",
     }
-    assert (
-        frozenset({"classical", "naive_respondent", "ppi", "ppi_pp", "ppi_crossfit"})
-        == estimators.VALID_UNDER_MCAR
-    )
+    assert frozenset({"classical", "ppi", "ppi_pp", "ppi_crossfit"}) == estimators.VALID_UNDER_MCAR
 
 
 class TestCoreValidation:

@@ -6,6 +6,7 @@ import numpy as np
 import polars as pl
 import pytest
 
+from silent97.estimators import classical, ppi
 from silent97.eval import harness
 
 SMALL = {
@@ -17,7 +18,7 @@ SMALL = {
         {"name": "mcar", "mechanism": "mcar"},
         {"name": "mar_weak", "mechanism": "mar", "signal_strength": 0.3},
     ],
-    "estimators": ["classical", "naive_respondent", "naive_model", "ppi", "ppi_pp", "ppi_crossfit"],
+    "estimators": ["classical", "naive_model", "ppi", "ppi_pp", "ppi_crossfit"],
     "n_labeled": [40, 80],
     "replicates": 4,
     "alpha": 0.1,
@@ -32,7 +33,7 @@ def results() -> pl.DataFrame:
 
 
 def test_shape_and_columns(results: pl.DataFrame) -> None:
-    assert results.height == 2 * 2 * 4 * 6
+    assert results.height == 2 * 2 * 4 * 5
     for col in harness.RESULT_COLUMNS:
         assert col in results.columns
     assert set(results["estimator"]) == set(SMALL["estimators"])
@@ -58,15 +59,24 @@ def test_truth_is_pool_nps(results: pl.DataFrame) -> None:
     assert prep.pool.size + prep.train_idx.size == 6000
 
 
-def test_same_estimates_for_shared_draws(results: pl.DataFrame) -> None:
-    """classical and naive_respondent see the same labeled draw in a replicate."""
-    a = results.filter(pl.col("estimator") == "classical").sort(
-        ["scenario", "n_labeled", "replicate"]
+def test_rows_match_estimators_on_the_replicate_draw(results: pl.DataFrame) -> None:
+    """Rebuild one replicate's survey draw independently; every estimator saw it."""
+    cfg = harness.GridConfig.from_dict(SMALL)
+    prep = harness.prepare_scenario(cfg, 0)
+    rng = np.random.default_rng([cfg.seed, 2, 0, 40, 1])
+    lab = harness.draw_respondents(prep.pool, prep.propensity[prep.pool], 40, rng)
+    unlab = np.setdiff1d(prep.pool, lab)
+    row = results.filter(
+        (pl.col("scenario") == "mcar") & (pl.col("n_labeled") == 40) & (pl.col("replicate") == 1)
     )
-    b = results.filter(pl.col("estimator") == "naive_respondent").sort(
-        ["scenario", "n_labeled", "replicate"]
-    )
-    np.testing.assert_array_equal(a["point"], b["point"])
+    expected = {
+        "classical": classical.classical(prep.scores[lab]),
+        "ppi": ppi.ppi(prep.scores[lab], prep.p_all[lab], prep.p_all[unlab]),
+    }
+    for name, est in expected.items():
+        got = row.filter(pl.col("estimator") == name).row(0, named=True)
+        assert got["point"] == pytest.approx(est.point, abs=1e-12)
+        assert got["upper"] == pytest.approx(est.upper, abs=1e-12)
 
 
 def test_deterministic_and_parallel_invariant(results: pl.DataFrame) -> None:

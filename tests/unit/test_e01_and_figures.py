@@ -14,7 +14,7 @@ population: {n_customers: 4000}
 labeler: {n_train: 500}
 scenarios:
   - {name: mcar, mechanism: mcar, signal_strength: 0.6}
-estimators: [classical, naive_respondent, naive_model, ppi, ppi_pp, ppi_crossfit]
+estimators: [classical, naive_model, ppi, ppi_pp, ppi_crossfit]
 n_labeled: [30, 60]
 replicates: 3
 crossfit_folds: 3
@@ -45,9 +45,9 @@ def test_e01_main_writes_outputs(tmp_path: Path) -> None:
     )
     assert code == 0
     results = pl.read_parquet(tmp_path / "r" / "e01_tiny.parquet")
-    assert results.height == 2 * 3 * 6
+    assert results.height == 2 * 3 * 5
     summary = pl.read_csv(tmp_path / "d" / "e01_tiny_summary.csv")
-    assert summary.height == 2 * 6
+    assert summary.height == 2 * 5
     png = tmp_path / "d" / "e01_tiny.png"
     assert png.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
     assert "| estimator |" in (tmp_path / "d" / "e01_tiny_summary.md").read_text()

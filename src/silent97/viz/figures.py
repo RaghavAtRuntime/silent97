@@ -32,14 +32,14 @@ GRID: Final = "#e4e3df"
 SURFACE: Final = "#fcfcfb"
 REFERENCE: Final = "#52514e"
 
-# Fixed categorical order (validated: adjacent CVD dE >= 9.1, normal-vision >= 19.6).
+# Fixed categorical order, slots 1-5 of the reference palette (validated: adjacent
+# CVD dE >= 9.1, normal-vision dE >= 19.6).
 ESTIMATOR_STYLE: Final[dict[str, dict[str, Any]]] = {
     "classical": {"color": "#2a78d6", "marker": "o", "label": "classical"},
-    "naive_respondent": {"color": "#eb6834", "marker": "s", "label": "naive respondent"},
-    "ppi": {"color": "#1baf7a", "marker": "^", "label": "PPI"},
-    "ppi_pp": {"color": "#eda100", "marker": "D", "label": "PPI++"},
-    "ppi_crossfit": {"color": "#e87ba4", "marker": "v", "label": "cross-fit PPI"},
-    "naive_model": {"color": "#008300", "marker": "X", "label": "naive model"},
+    "ppi": {"color": "#eb6834", "marker": "^", "label": "PPI"},
+    "ppi_pp": {"color": "#1baf7a", "marker": "D", "label": "PPI++"},
+    "ppi_crossfit": {"color": "#eda100", "marker": "v", "label": "cross-fit PPI"},
+    "naive_model": {"color": "#e87ba4", "marker": "X", "label": "naive model"},
 }
 
 
@@ -90,7 +90,6 @@ def coverage_figure(
     band: tuple[float, float] = (0.88, 0.92),
     coverage_estimators: tuple[str, ...] = (
         "classical",
-        "naive_respondent",
         "ppi",
         "ppi_pp",
         "ppi_crossfit",
@@ -187,7 +186,7 @@ def coverage_figure(
     keep = [i for i, lab in enumerate(ref_l) if lab.startswith(("Monte", "nominal", "A1"))]
     fig.legend(
         handles + [ref_h[i] for i in keep], labels + [ref_l[i] for i in keep],
-        loc="lower center", ncol=5, bbox_to_anchor=(0.5, -0.01),
+        loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.01),
     )  # fmt: skip
     if title:
         fig.suptitle(title, color=TEXT_PRIMARY, fontsize=12)

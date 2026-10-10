@@ -16,14 +16,11 @@ __all__ = ["REGISTRY", "VALID_UNDER_MCAR"]
 
 REGISTRY: Final[dict[str, Callable[..., Estimate]]] = {
     "classical": _classical.classical,
-    "naive_respondent": _classical.naive_respondent,
     "naive_model": _classical.naive_model,
     "ppi": _ppi.ppi,
     "ppi_pp": _ppi.ppi_pp,
     "ppi_crossfit": _ppi.ppi_crossfit,
 }
 
-VALID_UNDER_MCAR: Final = frozenset(
-    {"classical", "naive_respondent", "ppi", "ppi_pp", "ppi_crossfit"}
-)
+VALID_UNDER_MCAR: Final = frozenset({"classical", "ppi", "ppi_pp", "ppi_crossfit"})
 """Estimators whose intervals are valid when the labeled set is a random sample."""

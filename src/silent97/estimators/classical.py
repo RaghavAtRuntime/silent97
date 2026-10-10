@@ -1,4 +1,4 @@
-r"""Survey-only NPS estimators: ``classical`` and the two naive baselines.
+r"""Survey-only NPS estimators: ``classical`` and the ``naive_model`` baseline.
 
 ``classical``
     Respondent NPS with a delta-method Wald interval:
@@ -11,12 +11,9 @@ r"""Survey-only NPS estimators: ``classical`` and the two naive baselines.
     with :math:`Z = (1[y \ge 9], 1[y \le 6])`, :math:`g = (100, -100)` and
     :math:`\hat\Sigma_Z` the ddof-0 covariance of Z (as in
     ``ppi_py.classical_mean_ci``). Valid when the labeled set is a simple random
-    sample (MCAR), by the central limit theorem.
-
-``naive_respondent``
-    The same computation, under the name of the baseline that takes self-selected
-    respondents at face value. Valid only under MCAR; expected to fail under MAR and
-    MNAR.
+    sample (MCAR), by the central limit theorem. Applied to self-selected
+    respondents (MAR/MNAR) it is also the "take respondents at face value" baseline,
+    which is expected to fail there.
 
 ``naive_model``
     NPS of the average prediction over everyone (labeled and unlabeled), with
@@ -46,40 +43,7 @@ from silent97.estimators._common import (
 from silent97.estimators.nps import NPS_GRADIENT, delta_method_se, indicator_mean_cov
 from silent97.types import Estimate
 
-__all__ = ["classical", "naive_model", "naive_respondent"]
-
-
-def _classical(
-    y_lab: ArrayLike,
-    p_lab: ArrayLike | None,
-    p_unlab: ArrayLike | None,
-    alpha: float,
-    method: str,
-) -> Estimate:
-    a = validate_alpha(alpha)
-    z, _ = validate_labeled(y_lab, p_lab)
-    if p_unlab is not None:
-        validate_unlabeled(p_unlab)
-    n = z.shape[0]
-    mean, cov = indicator_mean_cov(z, ddof=0)
-    point = float(NPS_GRADIENT @ mean)
-    se = delta_method_se(cov, n)
-    lower, upper = normal_interval(point, se, a)
-    return Estimate(
-        point=point,
-        lower=lower,
-        upper=upper,
-        alpha=a,
-        se=se,
-        n_labeled=n,
-        n_unlabeled=0,
-        method=method,
-        diagnostics={
-            "promoter_share": float(mean[0]),
-            "detractor_share": float(mean[1]),
-            "effective_n": float(n),
-        },
-    )
+__all__ = ["classical", "naive_model"]
 
 
 def classical(
@@ -100,18 +64,30 @@ def classical(
     alpha : float, default 0.1
         The interval targets coverage ``1 - alpha``.
     """
-    return _classical(y_lab, p_lab, p_unlab, alpha, "classical")
-
-
-def naive_respondent(
-    y_lab: ArrayLike,
-    p_lab: ArrayLike | None = None,
-    p_unlab: ArrayLike | None = None,
-    *,
-    alpha: float = 0.1,
-) -> Estimate:
-    """Raw respondent NPS with the classical interval (baseline; MCAR only)."""
-    return _classical(y_lab, p_lab, p_unlab, alpha, "naive_respondent")
+    a = validate_alpha(alpha)
+    z, _ = validate_labeled(y_lab, p_lab)
+    if p_unlab is not None:
+        validate_unlabeled(p_unlab)
+    n = z.shape[0]
+    mean, cov = indicator_mean_cov(z, ddof=0)
+    point = float(NPS_GRADIENT @ mean)
+    se = delta_method_se(cov, n)
+    lower, upper = normal_interval(point, se, a)
+    return Estimate(
+        point=point,
+        lower=lower,
+        upper=upper,
+        alpha=a,
+        se=se,
+        n_labeled=n,
+        n_unlabeled=0,
+        method="classical",
+        diagnostics={
+            "promoter_share": float(mean[0]),
+            "detractor_share": float(mean[1]),
+            "effective_n": float(n),
+        },
+    )
 
 
 def naive_model(
