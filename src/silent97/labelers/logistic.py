@@ -192,7 +192,13 @@ def predict_folds(predictors: Sequence[Predictor], x: ArrayLike) -> NDArray[np.f
     weights = np.concatenate([p.weights for p in predictors], axis=1)  # type: ignore[attr-defined]
     offset = np.concatenate([p.offset for p in predictors])  # type: ignore[attr-defined]
     logits = (x_arr @ weights + offset).reshape(x_arr.shape[0], k, 3)
-    logits -= logits.max(axis=2, keepdims=True)
-    np.exp(logits, out=logits)
-    logits /= logits.sum(axis=2, keepdims=True)
-    return np.ascontiguousarray(logits[:, :, [PROMOTER, DETRACTOR]])
+    # Softmax over the 3 classes with elementwise ops on the class slices; numpy
+    # reductions along a length-3 axis are several times slower on large arrays.
+    det, pas, pro = logits[..., DETRACTOR], logits[..., PASSIVE], logits[..., PROMOTER]
+    top = np.maximum(np.maximum(det, pas), pro)
+    e_det, e_pas, e_pro = np.exp(det - top), np.exp(pas - top), np.exp(pro - top)
+    total = e_det + e_pas + e_pro
+    out = np.empty((x_arr.shape[0], k, 2))
+    np.divide(e_pro, total, out=out[..., 0])
+    np.divide(e_det, total, out=out[..., 1])
+    return out

@@ -144,13 +144,13 @@ def validate_predictions(p: ArrayLike, *, min_n: int = 1, name: str = "p") -> ND
         raise ValueError(f"{name} is empty; expected at least {max(min_n, 1)} row(s)")
     if arr.shape[0] < min_n:
         raise ValueError(f"{name} must have at least {min_n} rows, got {arr.shape[0]}")
-    if np.isnan(arr).any():
-        raise ValueError(f"{name} contains NaN; expected probabilities in [0, 1]")
-    if not np.isfinite(arr).all():
+    if not np.isfinite(arr).all():  # one pass; identify NaN only on failure
+        if np.isnan(arr).any():
+            raise ValueError(f"{name} contains NaN; expected probabilities in [0, 1]")
         raise ValueError(f"{name} must be finite; expected probabilities in [0, 1]")
     if arr.min() < 0.0 or arr.max() > 1.0:
         raise ValueError(f"{name} entries must lie in [0, 1], got range [{arr.min()}, {arr.max()}]")
-    row_sum = arr.sum(axis=1)
+    row_sum = arr[:, 0] + arr[:, 1]  # faster than a reduction along a length-2 axis
     if row_sum.max() > 1.0 + _ROW_SUM_TOL:
         raise ValueError(
             f"{name} rows must sum to at most 1 (P(promoter) + P(detractor) <= 1), "
