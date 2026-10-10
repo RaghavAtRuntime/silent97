@@ -126,10 +126,10 @@ the `estimate` signature, and `estimators.REGISTRY` maps names to them.
 |---|---|
 | Reference cross-checks at 1e-6 (A2) | **Pass.** 901 tests across 25 seeds × 4 (n, N) pairs ((50, 500), (100, 5,000), (500, 2,000), (1,000, 100,000)). Scalar means: PPI (λ = 1), PPI++ (clipped, matching `ppi_py`'s default, and unclipped against `ppi_py`'s own λ formula), cross-PPI, classical. NPS contrast: `classical`, `ppi`, `ppi_pp` (both clip settings), `ppi_crossfit` against `ppi_py` applied to v = gᵀZ, h = gᵀf. Tolerance is an absolute 1e-6 (no relative slack); the largest observed difference on NPS bounds is 1.2e-12. |
 | E1 coverage within criteria for every valid estimator at n ∈ {50, 100, 200, 500, 1000} (A1) | **Pass: 25/25** (5 valid estimators × 5 n). Table below. |
-| Naive baselines fail | `naive_model`: 0.0% coverage at every n in E1. `naive_respondent`: see the slow suite under MAR/MNAR. |
+| Naive baselines fail | `naive_model`: 0.0% coverage at every n in E1. `naive_respondent`: 15.4% (MAR) and 31.2% (MNAR) at n = 1,000. `naive_model` under MAR/MNAR: **not shown to fail**, see below. |
 | `make lint` | Clean. mypy `--strict` on `estimators/`. |
 | `make test` | 1,142 tests, about 30 s on an idle machine (unit, property, probing, reference). |
-| `make test-slow` | See "Slow coverage suite" below. |
+| `make test-slow` | **18 passed, 2 failed** (7 min 34 s). Every coverage test for a valid estimator passes. The two failures are my own `naive_model`-under-self-selection tests; the test premise is wrong (see "Slow coverage suite"). Left failing, pending your decision. |
 | Line coverage | `estimators/`: 100% of statements and branches (unit + reference tests). Package total 99%. |
 
 ### E1 (configs/e01_coverage.yaml; seed 20261011; 1,000 replicates; MCAR; signal 0.6)
@@ -167,6 +167,38 @@ bias +0.44 with mean width 0.34, so it never covers. Its "effective n" of about
 
 Runtime: 12 min 56 s on 4 cores (`n_jobs: 4`), almost all of it cross-fitting
 (10 logistic fits plus a 195,000-row prediction per replicate).
+
+### Slow coverage suite (`tests/coverage/test_coverage.py`)
+
+- **MCAR, seed 20261012 (not E1's seed), 1,000 replicates, n ∈ {50, 200, 1000}:**
+  all 15 (estimator, n) checks for `classical`, `naive_respondent`, `ppi`, `ppi_pp`
+  and `ppi_crossfit` pass (Wilson 95% interval overlaps [0.88, 0.92]).
+  `naive_model` fails coverage under MCAR, as intended.
+- **MAR and MNAR, default population (seed 20261010), n = 1,000, 1,000 replicates:**
+  `naive_respondent` fails as intended. Coverage is 15.4% [13.3%, 17.8%] under MAR
+  (bias +6.92, RMSE 7.41) and 31.2% [28.4%, 34.1%] under MNAR (bias +5.67).
+- **FAILED: `naive_model` under MAR and MNAR**: 100% coverage [99.6%, 100%] in both,
+  with bias +0.14 and mean width 0.35.
+
+  *Why:* `naive_model` never uses the survey responses. Its labeler is trained on a
+  *uniform* split (`labeler.train_mechanism: mcar`), so the response mechanism cannot
+  affect it; MAR and MNAR give identical numbers. Within one experiment the labeler
+  is fixed, so its error is the same in every replicate, and its coverage is all or
+  nothing. On this population the error (+0.14) happens to fall inside its ±0.17
+  half-width. On E1's population it is +0.44, giving 0% coverage. The test assumed
+  `naive_model` would be hurt by self-selection, which this design never allows.
+  That premise was mine, and it was wrong. The estimator behaves as specified.
+
+  *Not changed* (CLAUDE.md §1.3: no editing a failing test without approval).
+  Options:
+  (a) under MAR/MNAR, train the labeler on respondents drawn under the scenario's own
+  mechanism (`train_mechanism` = scenario mechanism). This is realistic, since past
+  survey waves are self-selected too, and the model then inherits the bias;
+  (b) drop the `naive_model` cases from the self-selection test and keep its MCAR
+  failure test, which already shows the false precision;
+  (c) assess `naive_model` across many independently trained labelers, so its
+  coverage is a rate rather than 0/1.
+  I recommend (a) for E4 plus (b) for this test, but I'll wait for your call.
 
 ### Observations and things that did not go as hoped
 
@@ -242,7 +274,11 @@ they move together, and then combined with the weights (+100, −100)
 3. **A3 wording:** keep "≥ 1.5× when ρ ≥ 0.5" and report the expected shortfall, or
    restate it as "≥ 1.5× when ρ ≥ 0.6", or as "matches 1/(1 − ρ²) within Monte
    Carlo error"?
-4. **Runtime:** E1 takes about 13 minutes on 4 cores, mostly cross-fitting. With more
+4. **The failing `naive_model` self-selection test**: choose (a), (b) or (c) above.
+5. **Runtime:** E1 takes about 13 minutes on 4 cores, mostly cross-fitting. With more
    experiments to come, A7 (30 minutes for `make reproduce`) will be tight. Options:
    fewer replicates for cross-fit in `reproduce`, K = 5 folds, or caching E1 results.
    I have not changed anything.
+
+Phase 2 stops here, pending your review at Gate G2. Gate status: A2 and E1/A1 pass;
+2 of 20 slow tests fail, for the reason explained above.
