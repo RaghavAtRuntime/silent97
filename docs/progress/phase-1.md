@@ -197,3 +197,14 @@ Questions 1–3 under "Open questions" above are still open. Two more:
    change, so I have not made it.
 
 Phase 1 stops here, pending your review at Gate G1.
+
+### Resolutions (recorded at the start of Phase 2)
+
+The reviewer asked for the recommendations above to be implemented:
+
+1. `pre-commit` stays in the dev group; `detect-secrets` runs inside pre-commit.
+2. Phase 2 predictions come from a minimal multinomial logistic-regression labeler
+   (`labelers/logistic.py`) trained on a uniform split of the population. That split
+   is removed from every inference pool, and the harness enforces this.
+3. Fixed-n respondent draws (probability ∝ propensity) live in `eval/harness.py`.
+4. and 5. The MAR/MNAR defaults are kept: γ_obs = 0.3, κ = 0.5.
