@@ -73,7 +73,7 @@ def selected_summary() -> pl.DataFrame:
                 {"name": "mar", "mechanism": "mar", "signal_strength": 0.6},
                 {"name": "mnar", "mechanism": "mnar", "signal_strength": 0.6},
             ],
-            "estimators": ["naive_respondent", "naive_model"],
+            "estimators": ["naive_respondent"],
             "n_labeled": [1000],
             "replicates": 1000,
         }
@@ -82,11 +82,13 @@ def selected_summary() -> pl.DataFrame:
 
 
 @pytest.mark.parametrize("scenario", ["mar", "mnar"])
-@pytest.mark.parametrize("estimator", ["naive_respondent", "naive_model"])
-def test_naive_baselines_fail_under_self_selection(
-    selected_summary: pl.DataFrame, scenario: str, estimator: str
+def test_naive_respondent_fails_under_self_selection(
+    selected_summary: pl.DataFrame, scenario: str
 ) -> None:
+    """naive_model is not tested here: it never uses the responses, and with a labeler
+    trained on a uniform split the response mechanism cannot affect it. Its failure
+    is shown under MCAR above (reviewer decision at Gate G2, option b)."""
     row = selected_summary.filter(
-        (pl.col("scenario") == scenario) & (pl.col("estimator") == estimator)
+        (pl.col("scenario") == scenario) & (pl.col("estimator") == "naive_respondent")
     ).row(0, named=True)
     assert row["coverage_hi"] < 0.88, row
