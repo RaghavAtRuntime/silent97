@@ -1,0 +1,22 @@
+# E1: do intervals keep their promise? (docs/PLAN.md, Experiments)
+# Simulator, MCAR, all Phase 2 estimators, n in {50, 100, 200, 500, 1000},
+# 1,000 replicates each, nominal 90% intervals.
+name: e01_coverage
+seed: 20261011
+population:
+  n_customers: 200000
+  target_nps: 20.0
+labeler:
+  n_train: 5000
+  c: 1.0
+  train_mechanism: mcar
+scenarios:
+  - name: mcar
+    mechanism: mcar
+    signal_strength: 0.6
+estimators: [classical, naive_respondent, naive_model, ppi, ppi_pp, ppi_crossfit]
+n_labeled: [50, 100, 200, 500, 1000]
+replicates: 1000
+alpha: 0.1
+crossfit_folds: 10
+n_jobs: 4
