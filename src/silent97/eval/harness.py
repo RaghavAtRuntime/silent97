@@ -6,7 +6,9 @@ Per scenario (built once):
    strength, seeded with ``default_rng(seed)``. Populations therefore match
    ``python -m silent97.data.simulate --seed <seed>`` with the same parameters.
 2. Draw the labeler's training set: ``labeler.n_train`` customers with probability
-   proportional to the ``labeler.train_mechanism`` propensity (uniform by default),
+   proportional to the ``labeler.train_mechanism`` propensity (uniform by default;
+   ``"scenario"`` uses the scenario's own mechanism, as if the model were trained on
+   an earlier self-selected survey wave),
    using ``default_rng([seed, 1])``. Fit the logistic labeler and predict everyone.
 3. The inference pool is everyone *not* in the training set; the truth is the
    pool's NPS.
@@ -169,12 +171,16 @@ class LabelerConfig:
     n_train: int = 5_000
     c: float = 1.0
     train_mechanism: str = "mcar"
+    """``"mcar"``, ``"mar"``, ``"mnar"``, or ``"scenario"`` for the scenario's mechanism."""
 
     def __post_init__(self) -> None:
         if self.n_train < 50:
             raise ValueError(f"labeler.n_train must be >= 50, got {self.n_train}")
-        if self.train_mechanism not in schema.MECHANISMS:
-            raise ValueError(f"labeler.train_mechanism must be one of {schema.MECHANISMS}")
+        allowed = (*schema.MECHANISMS, "scenario")
+        if self.train_mechanism not in allowed:
+            raise ValueError(
+                f"labeler.train_mechanism must be one of {allowed}, got {self.train_mechanism!r}"
+            )
 
 
 @dataclass(frozen=True)
@@ -270,7 +276,10 @@ def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
 
     x, _ = design_matrix(table)
     scores = np.asarray(table.column("score").to_numpy(), dtype=np.int64)
-    train_weights = table.column(f"propensity_{cfg.labeler.train_mechanism}").to_numpy()
+    train_mechanism = cfg.labeler.train_mechanism
+    if train_mechanism == "scenario":
+        train_mechanism = scenario.mechanism
+    train_weights = table.column(f"propensity_{train_mechanism}").to_numpy()
     everyone = np.arange(n_total, dtype=np.int64)
     train_idx = draw_respondents(
         everyone, train_weights, cfg.labeler.n_train, np.random.default_rng([cfg.seed, 1])

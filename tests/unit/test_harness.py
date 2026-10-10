@@ -89,6 +89,23 @@ def test_leak_is_caught(monkeypatch: pytest.MonkeyPatch) -> None:
         harness.run_replicate(prep, cfg, 0, 40, 0)
 
 
+def test_labeler_trained_on_scenario_mechanism() -> None:
+    """train_mechanism='scenario': the labeler learns from respondents of that mechanism."""
+    uniform = harness.GridConfig.from_dict(SMALL)
+    selected = harness.GridConfig.from_dict(
+        {**SMALL, "labeler": {"n_train": 800, "train_mechanism": "scenario"}}
+    )
+    u_mcar, u_mar = harness.prepare_scenario(uniform, 0), harness.prepare_scenario(uniform, 1)
+    s_mcar, s_mar = harness.prepare_scenario(selected, 0), harness.prepare_scenario(selected, 1)
+    # Uniform training: the same customers whatever the scenario.
+    np.testing.assert_array_equal(u_mcar.train_idx, u_mar.train_idx)
+    # Scenario training: MCAR scenario unchanged, MAR scenario draws with MAR propensity.
+    np.testing.assert_array_equal(s_mcar.train_idx, u_mcar.train_idx)
+    assert not np.array_equal(s_mar.train_idx, u_mar.train_idx)
+    assert s_mar.propensity[s_mar.train_idx].mean() > u_mar.propensity[u_mar.train_idx].mean()
+    assert np.intersect1d(s_mar.pool, s_mar.train_idx).size == 0
+
+
 def test_write_results(results: pl.DataFrame, tmp_path: Path) -> None:
     path = harness.write_results(results, tmp_path / "sub" / "r.parquet")
     assert pl.read_parquet(path).equals(results)
@@ -104,6 +121,7 @@ def test_write_results(results: pl.DataFrame, tmp_path: Path) -> None:
         ({"alpha": 1.5}, "alpha"),
         ({"surprise": 1}, "unknown"),
         ({"labeler": {"n_train": 10, "depth": 3}}, "unknown"),
+        ({"labeler": {"train_mechanism": "respondents"}}, "train_mechanism"),
         (
             {"scenarios": [{"name": "a", "mechanism": "mcar"}, {"name": "a", "mechanism": "mar"}]},
             "unique",
