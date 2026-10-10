@@ -1,4 +1,4 @@
-.PHONY: setup test test-slow lint format coverage reproduce demo simulate
+.PHONY: setup test test-slow lint format coverage reproduce demo simulate e01
 
 UV ?= uv
 
@@ -27,9 +27,11 @@ coverage:
 simulate:
 	$(UV) run python -m silent97.data.simulate --config configs/simulate.yaml
 
-# Phase 1: the only artifact is the simulated population. Experiments are added
-# to this target as they land (Phase 2 onward).
-reproduce: simulate
+e01:
+	$(UV) run python experiments/e01_coverage.py --config configs/e01_coverage.yaml
+
+# Every experiment result and figure. Experiments are added as their phases land.
+reproduce: simulate e01
 
 # The demo is built in Phase 5.
 demo:
