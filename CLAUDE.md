@@ -166,7 +166,7 @@ At the start of each phase, write `docs/progress/phase-N.md` with a short plan (
 - **Gate G1:** simulator's realized NPS is within ±1 point of target across 20 seeds; identical seeds produce byte-identical Parquet; tests and lint pass.
 
 ### Phase 2: Core estimators (weekends 3–4)
-- `classical`, `ppi`, `ppi_pp`, `ppi_crossfit`, plus `naive_respondent` and `naive_model` baselines.
+- `classical`, `ppi`, `ppi_pp`, `ppi_crossfit`, plus the `naive_model` baseline (`classical` on self-selected respondents is the naive respondent baseline).
 - `eval/harness.py`: run (estimator × scenario × n × replicate) grids from YAML, write Parquet. `eval/metrics.py`: coverage with Wilson intervals, width, bias, RMSE, effective n, responses saved.
 - `experiments/e01_coverage.py` and its figure.
 - **Gate G2 (most important):** reference cross-checks pass at 1e-6; E1 coverage within criteria for every valid estimator at n ∈ {50, 100, 200, 500, 1000}; the human reviews every line of `estimators/`. Write a plain-English explanation of each estimator, pointing to the exact lines that implement each formula.

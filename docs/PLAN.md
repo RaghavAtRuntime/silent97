@@ -84,14 +84,14 @@ The project succeeds when a reviewer can run one command, see that corrected int
 | --- | --- | --- |
 | A1 | Coverage of nominal 90% intervals, missing-at-random scenarios, n from 50 to 1,000, 1,000 replicates each | Between 88% and 92% for every valid estimator |
 | A2 | Our PPI and PPI++ match the reference `ppi_py` library on identical inputs | Point estimates and interval bounds agree to 1e-6 |
-| A3 | Effective-sample-size gain of PPI++ over classical when model–outcome correlation is at least 0.5 | At least 1.5× (reported honestly if lower) |
+| A3 | Effective-sample-size gain of PPI++ over classical, as a function of model–outcome correlation ρ (theory: about 1/(1 − ρ²) when N ≫ n) | Within Monte Carlo error of 1/(1 − ρ²), and at least 1.5× when ρ ≥ 0.6 (reported honestly if lower) |
 | A4 | Active sampling width at equal survey budget vs uniform sampling | Narrower, with coverage still meeting A1 |
 | A5 | MRP segment estimates for cells with fewer than 30 responses | Lower RMSE than raw segment means across replicates |
 | A6 | Missing-not-at-random scenarios | Bias is shown, not hidden; sensitivity bounds contain the truth at the stated assumption |
 | A7 | Reproducibility | `make reproduce` rebuilds every figure and table from cached labels in under 30 minutes on a laptop |
 | A8 | Code quality | Tests pass in CI; line coverage at least 90% on `estimators/` and `sampling/`; ruff and mypy clean |
 
-Naive estimators (raw respondent mean, LLM-only mean) are included as baselines expected to *fail* A1. Showing that failure is part of the result.
+Naive baselines (`classical` applied to self-selected respondents, and the LLM- or model-only mean) are included as baselines expected to *fail* A1 under self-selection. Showing that failure is part of the result.
 
 ## Data strategy
 
@@ -186,9 +186,8 @@ def estimate(y_lab, f_lab, f_unlab, *, alpha=0.1, weights=None, **kw) -> Estimat
 
 | Name | What it does | Valid under |
 | --- | --- | --- |
-| `naive_respondent` | Raw NPS of respondents | MCAR only (baseline expected to fail) |
+| `classical` | Respondent NPS with a delta-method interval on the promoter/detractor pair. On self-selected respondents it is also the naive respondent baseline | MCAR (baseline expected to fail under MAR/MNAR) |
 | `naive_model` | Average of predictions on everyone | Never (baseline expected to fail) |
-| `classical` | Respondent NPS with a delta-method interval on the promoter/detractor pair | MCAR |
 | `ppi` | PPI with λ = 1 | MCAR labeled set |
 | `ppi_pp` | PPI++ with variance-optimal λ, estimated by plug-in | MCAR labeled set |
 | `ppi_crossfit` | Cross-prediction PPI: model trained on K−1 folds of labeled data, predicts the held-out fold | MCAR; no separate training data needed |
