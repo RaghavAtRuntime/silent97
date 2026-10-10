@@ -262,7 +262,14 @@ class TestCrossFitHelper:
         fit, seen = _recording_fit()
         out = ppi.cross_fit(x_lab, y, x_unlab, fit=fit, n_folds=5, rng=np.random.default_rng(1))
         assert out.p_lab.shape == (n, 2)
-        assert out.p_unlab.shape == (big_n, 5, 2)
+        assert out.p_unlab is not None and out.p_unlab.shape == (big_n, 5, 2)
+        assert len(out.predictors) == 5
+        for k, predict in enumerate(out.predictors):
+            np.testing.assert_array_equal(out.p_unlab[:, k, :], predict(x_unlab))
+        fit2, _ = _recording_fit()
+        skipped = ppi.cross_fit(x_lab, y, None, fit=fit2, n_folds=5, rng=np.random.default_rng(1))
+        assert skipped.p_unlab is None
+        np.testing.assert_array_equal(skipped.p_lab, out.p_lab)
         assert np.all(out.p_lab[:, 1] == 0.0), "a labeled row was predicted by its own model"
         assert len(seen) == 5
         for k, rows in enumerate(seen):

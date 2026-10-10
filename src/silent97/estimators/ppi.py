@@ -416,16 +416,19 @@ class CrossFitPredictions(NamedTuple):
 
     p_lab: FloatArray
     """(n, 2) predictions for each labeled row from the model that did not see it."""
-    p_unlab: FloatArray
-    """(N, K, 2) predictions of each fold model on the unlabeled rows."""
+    p_unlab: FloatArray | None
+    """(N, K, 2) predictions of each fold model on the unlabeled rows (None if no
+    ``x_unlab`` was given)."""
     folds: NDArray[np.int64]
     """(n,) fold id of each labeled row."""
+    predictors: tuple[Callable[[FloatArray], FloatArray], ...]
+    """The K fold models; ``predictors[k]`` never saw fold k."""
 
 
 def cross_fit(
     x_lab: ArrayLike,
     y_lab: ArrayLike,
-    x_unlab: ArrayLike,
+    x_unlab: ArrayLike | None,
     *,
     fit: FitFn,
     n_folds: int = 10,
@@ -435,15 +438,17 @@ def cross_fit(
 
     Rows are assigned to ``n_folds`` folds of near-equal size by a random permutation.
     For each fold k, ``fit`` is called on the labeled rows outside fold k, and the
-    returned predictor is applied to fold k and to all of ``x_unlab``.
+    returned predictor is applied to fold k and (if given) to all of ``x_unlab``.
+    Pass ``x_unlab=None`` to predict the unlabeled rows yourself from
+    ``predictors`` (e.g. in one batched pass).
     """
     x_l = np.asarray(x_lab, dtype=np.float64)
-    x_u = np.asarray(x_unlab, dtype=np.float64)
     scores = validate_scores(y_lab, min_n=2, name="y_lab")
     n = scores.shape[0]
     if x_l.ndim != 2 or x_l.shape[0] != n:
         raise ValueError(f"x_lab must have shape (n, p) with n = {n}, got {x_l.shape}")
-    if x_u.ndim != 2 or x_u.shape[1] != x_l.shape[1]:
+    x_u = None if x_unlab is None else np.asarray(x_unlab, dtype=np.float64)
+    if x_u is not None and (x_u.ndim != 2 or x_u.shape[1] != x_l.shape[1]):
         raise ValueError(f"x_unlab must have shape (N, {x_l.shape[1]}), got {x_u.shape}")
     if isinstance(n_folds, bool) or not isinstance(n_folds, int) or not 2 <= n_folds <= n:
         raise ValueError(f"n_folds must be an integer in [2, n = {n}], got {n_folds!r}")
@@ -452,12 +457,15 @@ def cross_fit(
     for k, chunk in enumerate(np.array_split(rng.permutation(n), n_folds)):
         folds[chunk] = k
     p_lab = np.empty((n, 2))
-    p_unlab = np.empty((x_u.shape[0], n_folds, 2))
+    p_unlab = None if x_u is None else np.empty((x_u.shape[0], n_folds, 2))
+    predictors = []
     for k in range(n_folds):
         held_out = folds == k
         predict = fit(x_l[~held_out], scores[~held_out])
+        predictors.append(predict)
         p_lab[held_out] = predict(x_l[held_out])
-        p_unlab[:, k, :] = predict(x_u)
+        if p_unlab is not None and x_u is not None:
+            p_unlab[:, k, :] = predict(x_u)
+    # p_unlab is validated by ppi_crossfit; validating 2 x N x K values twice is costly.
     validate_predictions(p_lab, name="cross-fit p_lab")
-    validate_predictions(p_unlab.reshape(-1, 2), name="cross-fit p_unlab")
-    return CrossFitPredictions(p_lab, p_unlab, folds)
+    return CrossFitPredictions(p_lab, p_unlab, folds, tuple(predictors))

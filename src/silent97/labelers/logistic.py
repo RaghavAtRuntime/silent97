@@ -12,7 +12,7 @@ valid, only to be narrow.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any, Final
 
 import numpy as np
@@ -26,7 +26,14 @@ from silent97.data import schema
 from silent97.data.simulate import AGE_BANDS, PROVINCES
 from silent97.estimators.nps import DETRACTOR_MAX, PROMOTER_MIN, validate_scores
 
-__all__ = ["Predictor", "design_matrix", "fit_logistic", "score_classes"]
+__all__ = [
+    "LinearSoftmaxPredictor",
+    "Predictor",
+    "design_matrix",
+    "fit_logistic",
+    "predict_folds",
+    "score_classes",
+]
 
 DETRACTOR: Final = 0
 PASSIVE: Final = 1
@@ -133,12 +140,59 @@ def fit_logistic(x: ArrayLike, y: ArrayLike, *, c: float = 1.0) -> Predictor:
 
     model = make_pipeline(StandardScaler(), LogisticRegression(C=c, max_iter=2000))
     model.fit(x_arr, classes)
-    fitted_classes = np.asarray(model.classes_, dtype=np.int64)
+    scaler, lr = model[0], model[-1]
+    fitted_classes = np.asarray(lr.classes_, dtype=np.int64)
+    # Fold the standardization into the linear predictor: (x - mu)/s @ B + b0
+    # = x @ (B / s) + (b0 - (mu / s) @ B). Same model as ``model.predict_proba``,
+    # without scikit-learn's per-call validation overhead on large unlabeled sets.
+    coef = np.asarray(lr.coef_, dtype=np.float64).T  # (p, k), or (p, 1) for 2 classes
+    intercept = np.asarray(lr.intercept_, dtype=np.float64)
+    weights = coef / scaler.scale_[:, None]
+    offset = intercept - (scaler.mean_ / scaler.scale_) @ coef
+    if fitted_classes.size == 2:  # binary: a single logit for the second class
+        weights = np.column_stack([-weights[:, 0] / 2, weights[:, 0] / 2])
+        offset = np.array([-offset[0] / 2, offset[0] / 2])
+    # Expand to all three classes; an absent class gets logit -inf (probability 0).
+    weights3 = np.zeros((x_arr.shape[1], 3))
+    offset3 = np.full(3, -np.inf)
+    weights3[:, fitted_classes] = weights
+    offset3[fitted_classes] = offset
+    return LinearSoftmaxPredictor(weights3, offset3, model)
 
-    def predict(x_new: NDArray[np.float64]) -> NDArray[np.float64]:
-        proba = model.predict_proba(np.asarray(x_new, dtype=np.float64))
-        full = np.zeros((proba.shape[0], 3))
-        full[:, fitted_classes] = proba
-        return np.ascontiguousarray(full[:, [PROMOTER, DETRACTOR]])
 
-    return predict
+class LinearSoftmaxPredictor:
+    """Multinomial-logit predictor ``softmax(x @ weights + offset)`` over 3 classes.
+
+    Calling it returns ``[P(promoter), P(detractor)]``. ``model`` keeps the fitted
+    scikit-learn pipeline for inspection.
+    """
+
+    def __init__(
+        self, weights: NDArray[np.float64], offset: NDArray[np.float64], model: Any
+    ) -> None:
+        self.weights = weights
+        self.offset = offset
+        self.model = model
+
+    def __call__(self, x_new: NDArray[np.float64]) -> NDArray[np.float64]:
+        return predict_folds([self], x_new)[:, 0, :]
+
+
+def predict_folds(predictors: Sequence[Predictor], x: ArrayLike) -> NDArray[np.float64]:
+    """Predictions of several predictors on the same rows, shape (m, K, 2).
+
+    When every predictor is a :class:`LinearSoftmaxPredictor`, all K models are
+    evaluated with one stacked matrix product, which is much faster for large m.
+    Otherwise each predictor is called in turn.
+    """
+    x_arr = np.asarray(x, dtype=np.float64)
+    if not all(isinstance(p, LinearSoftmaxPredictor) for p in predictors):
+        return np.stack([p(x_arr) for p in predictors], axis=1)
+    k = len(predictors)
+    weights = np.concatenate([p.weights for p in predictors], axis=1)  # type: ignore[attr-defined]
+    offset = np.concatenate([p.offset for p in predictors])  # type: ignore[attr-defined]
+    logits = (x_arr @ weights + offset).reshape(x_arr.shape[0], k, 3)
+    logits -= logits.max(axis=2, keepdims=True)
+    np.exp(logits, out=logits)
+    logits /= logits.sum(axis=2, keepdims=True)
+    return np.ascontiguousarray(logits[:, :, [PROMOTER, DETRACTOR]])

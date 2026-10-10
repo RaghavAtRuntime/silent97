@@ -88,3 +88,35 @@ def test_single_class_is_constant(score: int, expected: list[float]) -> None:
 def test_rejects_mismatched_lengths() -> None:
     with pytest.raises(ValueError, match="rows"):
         logistic.fit_logistic(np.zeros((5, 2)), np.zeros(4, dtype=int))
+
+
+@pytest.mark.parametrize("n_classes", [2, 3])
+def test_fast_predictor_matches_sklearn(n_classes: int) -> None:
+    rng = np.random.default_rng(4)
+    x = rng.normal(loc=3.0, scale=[1.0, 5.0, 0.2], size=(400, 3))
+    y = np.digitize(x[:, 0] + rng.normal(size=400), [2.5, 3.5]) * 4 + 1  # scores 1, 5, 9
+    if n_classes == 2:
+        y = np.where(y == 5, 1, y)
+    predict = logistic.fit_logistic(x, y)
+    proba = predict.model.predict_proba(x)  # type: ignore[attr-defined]
+    classes = list(predict.model.classes_)  # type: ignore[attr-defined]
+    full = np.zeros((400, 3))
+    full[:, classes] = proba
+    np.testing.assert_allclose(predict(x), full[:, [2, 0]], atol=1e-12)
+
+
+def test_predict_folds_matches_individual_predictors() -> None:
+    rng = np.random.default_rng(5)
+    x = rng.normal(size=(300, 4))
+    y_full = np.digitize(x[:, 0] + rng.normal(size=300), [-0.5, 0.5]) * 4 + 1
+    y_two = np.where(y_full == 5, 1, y_full)  # a fold model missing the passive class
+    preds = [logistic.fit_logistic(x, y_full), logistic.fit_logistic(x, y_two)]
+    stacked = logistic.predict_folds(preds, x)
+    assert stacked.shape == (300, 2, 2)
+    for k, p in enumerate(preds):
+        np.testing.assert_allclose(stacked[:, k, :], p(x), atol=1e-12)
+    # A non-linear (constant) predictor falls back to calling each model.
+    preds.append(logistic.fit_logistic(x, np.full(300, 10)))
+    mixed = logistic.predict_folds(preds, x)
+    np.testing.assert_allclose(mixed[:, 2, :], np.tile([1.0, 0.0], (300, 1)))
+    np.testing.assert_allclose(mixed[:, :2, :], stacked, atol=1e-12)
