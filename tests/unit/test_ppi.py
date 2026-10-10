@@ -367,3 +367,47 @@ def test_registry() -> None:
         frozenset({"classical", "naive_respondent", "ppi", "ppi_pp", "ppi_crossfit"})
         == estimators.VALID_UNDER_MCAR
     )
+
+
+class TestCoreValidation:
+    @pytest.mark.parametrize(
+        "y, f, u, match",
+        [
+            (np.zeros((2, 2, 2)), np.zeros((2, 2, 2)), np.zeros((3, 2)), "shape"),
+            (np.array([1.0, np.nan]), np.zeros(2), np.zeros(3), "finite"),
+            (np.zeros(3), np.zeros(4), np.zeros(5), "same shape"),
+            (np.zeros((3, 2)), np.zeros((3, 2)), np.zeros((5, 1)), "column"),
+            (np.zeros(1), np.zeros(1), np.zeros(5), "at least 2"),
+        ],
+    )
+    def test_rejects(self, y: np.ndarray, f: np.ndarray, u: np.ndarray, match: str) -> None:
+        with pytest.raises(ValueError, match=match):
+            ppi.ppi_mean_pointestimate(y, f, u, 1.0)
+
+    def test_bad_contrast(self) -> None:
+        with pytest.raises(ValueError, match="contrast"):
+            ppi.optimal_lambda(np.zeros((4, 2)), np.ones((4, 2)), np.ones((5, 2)), contrast=[1.0])
+
+    def test_trace_mode_matches_scalar(self) -> None:
+        y, p_lab, p_unlab = _data(11)
+        z = nps.indicators(y)
+        lam, _, _ = ppi.optimal_lambda(z[:, :1], p_lab[:, :1], p_unlab[:, :1])
+        lam_c, _, _ = ppi.optimal_lambda(z[:, :1], p_lab[:, :1], p_unlab[:, :1], contrast=[1.0])
+        assert lam == pytest.approx(lam_c)
+
+    def test_cross_fit_feature_shapes(self) -> None:
+        fit, _ = _recording_fit()
+        y = np.zeros(10, dtype=int)
+        with pytest.raises(ValueError, match="x_lab"):
+            ppi.cross_fit(
+                np.zeros((9, 1)), y, None, fit=fit, n_folds=2, rng=np.random.default_rng(0)
+            )
+        with pytest.raises(ValueError, match="x_unlab"):
+            ppi.cross_fit(
+                np.zeros((10, 1)),
+                y,
+                np.zeros((5, 2)),
+                fit=fit,
+                n_folds=2,
+                rng=np.random.default_rng(0),
+            )
