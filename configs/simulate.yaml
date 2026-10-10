@@ -1,0 +1,10 @@
+# Default synthetic population (Phase 1). All parameters are documented in
+# src/silent97/data/simulate.py; omitted ones take the SimConfig defaults.
+seed: 20261010
+out_dir: data/processed/sim
+simulation:
+  n_customers: 200000
+  target_nps: 20.0
+  signal_strength: 0.6
+  response_rate: 0.03
+  mnar_strength: 0.5
