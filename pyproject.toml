@@ -18,11 +18,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-llm = [
-    "anthropic>=1.13.0",
-]
 text = [
     "sentence-transformers>=6.1.0",
+    "transformers>=5.19.0",
 ]
 
 [dependency-groups]
@@ -76,7 +74,7 @@ module = ["silent97.estimators.*"]
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["yaml", "pyarrow", "pyarrow.*", "scipy", "scipy.*", "sklearn", "sklearn.*", "joblib", "matplotlib", "matplotlib.*", "lightgbm", "lightgbm.*", "sentence_transformers", "sentence_transformers.*"]
+module = ["yaml", "pyarrow", "pyarrow.*", "scipy", "scipy.*", "sklearn", "sklearn.*", "joblib", "matplotlib", "matplotlib.*", "lightgbm", "lightgbm.*", "sentence_transformers", "sentence_transformers.*", "torch", "torch.*", "transformers", "transformers.*"]
 ignore_missing_imports = true
 
 [tool.coverage.run]
