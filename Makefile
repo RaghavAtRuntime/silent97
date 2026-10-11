@@ -37,13 +37,15 @@ e02:
 cfpb:
 	$(UV) run python -m silent97.data.cfpb
 
-# E6 replays cached labels; scoring the pool with the local LLM needs --run-llm (see configs/llm.yaml).
+# E6 replays cached labels (needs `make cfpb` first). --run-llm includes the local LLM; with
+# its labels cached nothing is re-scored, and the item cap in configs/llm.yaml stops any
+# unexpected scoring.
 e06:
-	$(UV) run python experiments/e06_cfpb.py --config configs/e06_cfpb.yaml
+	$(UV) run python experiments/e06_cfpb.py --config configs/e06_cfpb.yaml --run-llm
 
 # Every experiment result and figure. Experiments are added as their phases land.
-# E6 joins once the CFPB data and its labels are cached (Gate G3).
-reproduce: simulate e01 e02
+# E6 needs the CFPB data (`make cfpb`) and its cached labels under cache/.
+reproduce: simulate e01 e02 e06
 
 # The demo is built in Phase 5.
 demo:

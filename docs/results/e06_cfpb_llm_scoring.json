@@ -1,0 +1,17 @@
+{
+  "dry_run": false,
+  "model": "Qwen/Qwen2.5-0.5B-Instruct@7ae557604adf67be50417f59c2c2f167def9a775",
+  "device": "cpu",
+  "plan": {
+    "n_items": 5000,
+    "n_cached": 0,
+    "n_to_score": 4992,
+    "projected_tokens": 1914881.1428571453,
+    "projected_seconds": 4255.291428571434,
+    "scored_before": 0
+  },
+  "n_scored": 4992,
+  "n_failed": 0,
+  "seconds": 6709.714212819,
+  "spent_usd": 0.0
+}

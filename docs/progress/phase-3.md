@@ -407,3 +407,122 @@ covers the simulator only. I did not account for it when I offered 5,000 against
 
 Once those are settled, the next session runs `make cfpb`, E6 with all three labelers
 (`--run-llm`), and writes the G3 note.
+
+---
+
+## Gate G3 results (session 2, continued, 2026-10-11)
+
+Reviewer decisions: the CC0 mirror is approved; keep pool 5,000 and report the over-coverage;
+`us.aws.cdn.hf.co` and `www.consumerfinance.gov` were added to the allowed domains.
+
+### CFPB data (`data/processed/cfpb/cfpb_manifest.json`)
+
+- Source: the three `has-text` shards of `BEE-spoke-data/consumer-finance-complaints`,
+  SHA-256-verified against the pinned values. There are 1,689,573 rows with a narrative; 1,522,903
+  are outside the window and 2,664 have no dispute value. **Kept: 164,006 complaints, dispute
+  rate 21.83%.**
+- **Cross-check against the current official export:** 163,950 of the 164,006 complaint ids
+  are found there. 163,883 have identical date, product, issue and state. The 67
+  differences are all `state`: the mirror says `PR` (Puerto Rico) where the official export
+  now has the field blank. The 56 ids not found have presumably been removed from the official
+  database since the mirror was made. Narrative and dispute cannot be cross-checked: the CFPB
+  API (`www.consumerfinance.gov`, now reachable) has also dropped
+  `complaint_what_happened` and `consumer_disputed`, and its `has_narrative` filter is
+  ignored (totals are unchanged with or without it).
+- Hugging Face's `xet` download client needs one more host, `cas-server.xethub.hf.co`, which is
+  still blocked. With `HF_HUB_DISABLE_XET=1`, downloads fall back to plain HTTPS through
+  `us.aws.cdn.hf.co`, which works. Both models are now in `~/.cache/huggingface`, and E6 ran
+  with `HF_HUB_OFFLINE=1`.
+
+### LLM labels (`docs/results/e06_cfpb_llm_scoring.json`, `docs/results/e06_cfpb_llm_report.json`)
+
+- Model `Qwen/Qwen2.5-0.5B-Instruct`, now pinned to revision
+  `7ae557604adf67be50417f59c2c2f167def9a775` in `configs/llm.yaml`. CPU, 4 cores, $0, nothing
+  sent off the machine.
+- The dry run reported 5,000 items, of which 4,992 needed scoring (8 duplicate complaint
+  texts share a cache key), projected at 4,255 s.
+- **Actual: 4,992 scored in 6,710 s (1.86 h, about 1.34 s per complaint), 0 invalid.** That is
+  58% slower than projected: the 450 tokens/s figure in `configs/llm.yaml` came from a
+  random-weight model of the same architecture. I left the config value unchanged, because it
+  only drives the dry-run estimate.
+- The E6 run replayed all 5,000 from cache (0 newly scored). The item cap is 5,000 and the
+  ledger shows 4,992 used.
+
+### E6 (`docs/results/e06_cfpb_summary.{csv,md}`, figures `e06_cfpb_{tabular,embedding,llm}.png`)
+
+Pool of 5,000 complaints, true dispute rate 21.32%, 1,000 replicates per cell, seed 20261014,
+16.5 min on 4 cores (including encoding about 38,000 narratives for the embedding labeler).
+
+**Labelers are weak on this task.** Model–outcome correlation ρ on the pool: embedding 0.179,
+tabular 0.074, LLM **−0.083**. The LLM's P(detractor) averages 73.8%, against a true rate of 21.3%
+(the naive-model bias is +52.5 points). Nearly every complaint reads as a detractor to
+it, and its ranking is slightly *anti*-correlated with disputing. As a result there are no
+meaningful width gains:
+
+| labeler (ρ) | effective n at n = 1,000: PPI / PPI++ / cross-fit | PPI++ mean λ̂ (n = 50 → 1,000) |
+|---|---|---|
+| embedding (0.179) | 1,018 / 1,027 / 853 | 0.78 → 0.64 |
+| tabular (0.074) | 1,004 / 1,005 / 853 | 0.82 → 0.70 |
+| LLM (−0.083) | 880 / 1,006 / 852 | −0.33 → −0.25 |
+
+PPI++ handles the anti-correlated LLM as designed. It picks a negative λ̂ and stays at
+classical efficiency (1,006), whereas plain PPI (λ = 1) loses 12% (880). Cross-fit PPI does
+not use the labelers at all (it fits its own logistic model on one-hot product, issue and
+state) and costs about 15% efficiency at every n. These gains are far below what E2 shows on
+the simulator, because ρ here is below 0.2 (theory: 1/(1 − 0.179²) = 1.03).
+
+**Coverage.** Valid estimators (classical, PPI, PPI++, cross-fit) × 3 labelers = 12 cells
+per n. Within the A1 band (Wilson interval overlaps [0.88, 0.92]): **57 of 60**. The 3
+misses are all over-coverage at n = 1,000: tabular classical 0.940 [0.924, 0.953], tabular
+PPI 0.938 [0.921, 0.951] and LLM PPI++ 0.937 [0.920, 0.950]. All 15 naive-model cells cover 0%,
+as expected.
+
+Mean coverage across the 12 cells against the finite-pool prediction
+2Φ(1.645/√(1 − n/5000)) − 1:
+
+| n | all valid | classical, PPI, PPI++ | cross-fit | predicted |
+|---|---|---|---|---|
+| 50 | 0.881 | 0.883 | 0.877 | 0.902 |
+| 100 | 0.888 | 0.890 | 0.883 | 0.903 |
+| 200 | 0.896 | 0.899 | 0.888 | 0.907 |
+| 500 | 0.913 | 0.915 | 0.906 | 0.917 |
+| 1,000 | 0.931 | 0.935 | 0.918 | 0.934 |
+
+- **n ≥ 500: over-coverage matches the finite-pool prediction** (0.915 vs 0.917, and 0.935 vs
+  0.934). The three n = 1,000 band misses are that effect, as anticipated: the intervals are
+  valid for the pool rate, only wider than needed. Per the reviewer's decision, pool and
+  criteria are unchanged.
+- **Small n runs about 2 points below the prediction** (0.883 at n = 50). This is the
+  familiar small-sample undercoverage of Wald intervals for a proportion near 0.2 (skewed
+  binomial). All those cells are still inside the A1 band. The 12 cells share the
+  same kind of draws and are not independent, so I give the averages as a description, not a test.
+- **Cross-fit runs about 1–1.7 points below the others at every n** (0.918 against 0.935 at
+  n = 1,000), even though its intervals are about 8% wider. Its plug-in variance leaves out
+  the variability from refitting the fold models, which is noticeable with a few dozen labeled
+  complaints per fold and hundreds of sparse one-hot features. Every cross-fit cell is
+  inside the A1 band, so I note this for the record and have not investigated it further.
+
+### Gate G3 status
+
+| Criterion | Status |
+|---|---|
+| All labels cached | ✓ Tabular and embedding (fit on the 20% training split; embeddings cached under `cache/embeddings`), LLM (5,000 items under `cache/llm`) |
+| LLM compute and item count reported | ✓ 4,992 scored, 6,710 s on CPU, 0 invalid, $0; cap 5,000 |
+| E6 coverage reported for each labeler | ✓ Above; 57/60 valid cells in the A1 band, with the 3 misses being the predicted finite-pool over-coverage at n = 1,000 |
+| `make lint`, `make test`, `make test-slow` | ✓ lint clean; 1,313 fast tests (56 s); slow suite 15/15 (4 min 55 s) |
+
+Also: `make e06` now passes `--run-llm`, so it replays the cached LLM labels, and `make
+reproduce` includes E6. E6 needs `make cfpb` first; `data/` and `cache/` are git-ignored, so a
+clean clone has to rebuild them (G5 will need to account for this).
+
+### Open questions
+
+1. **Reproducing from a clean clone (for G5).** E6's labels live in the git-ignored
+   `cache/`. A clean clone either rescores (about 2 h of CPU) or needs the cache shipped
+   another way, for example as a release asset. It is your call how "from cached labels"
+   should work.
+2. The labelers are weak on dispute prediction (ρ ≤ 0.18). A larger local LLM would be a
+   one-line config change, at several times the CPU time. That is out of Phase 3 scope, and
+   I note it for `docs/ideas.md` only if you want it.
+
+Phase 3 stops here for review.
