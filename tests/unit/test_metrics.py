@@ -76,3 +76,70 @@ def test_summarize() -> None:
 )
 def test_coverage_ok(lo: float, hi: float, ok: bool) -> None:
     assert metrics.overlaps_target(lo, hi) is ok
+
+
+def test_effective_n_bootstrap() -> None:
+    rng = np.random.default_rng(1)
+    rows = []
+    for r in range(400):
+        w_cl = 20.0 + rng.normal(scale=1.0)
+        rows.append(
+            {
+                "scenario": "s",
+                "estimator": "classical",
+                "n_labeled": 100,
+                "replicate": r,
+                "width": w_cl,
+            }
+        )
+        rows.append(
+            {
+                "scenario": "s",
+                "estimator": "ppi_pp",
+                "n_labeled": 100,
+                "replicate": r,
+                "width": w_cl / 1.5,
+            }
+        )
+    df = pl.DataFrame(rows)
+    out = metrics.effective_n_bootstrap(df, n_boot=300, rng=np.random.default_rng(0))
+    row = out.filter(pl.col("estimator") == "ppi_pp").row(0, named=True)
+    assert row["ratio"] == pytest.approx(2.25)
+    assert row["ratio_lo"] == pytest.approx(2.25) and row["ratio_hi"] == pytest.approx(2.25)
+    assert out.filter(pl.col("estimator") == "classical")["ratio"].to_list() == [1.0]
+
+
+def test_effective_n_bootstrap_interval_covers_noise() -> None:
+    rng = np.random.default_rng(2)
+    rows = []
+    for r in range(300):
+        rows.append(
+            {
+                "scenario": "s",
+                "estimator": "classical",
+                "n_labeled": 50,
+                "replicate": r,
+                "width": 20 + rng.normal(),
+            }
+        )
+        rows.append(
+            {
+                "scenario": "s",
+                "estimator": "ppi",
+                "n_labeled": 50,
+                "replicate": r,
+                "width": 15 + rng.normal(),
+            }
+        )
+    out = metrics.effective_n_bootstrap(
+        pl.DataFrame(rows), n_boot=500, rng=np.random.default_rng(3)
+    )
+    row = out.filter(pl.col("estimator") == "ppi").row(0, named=True)
+    assert row["ratio_lo"] < row["ratio"] < row["ratio_hi"]
+    assert row["ratio_lo"] < (20 / 15) ** 2 < row["ratio_hi"]
+
+
+def test_theory_ratio() -> None:
+    assert metrics.ppi_pp_theory_ratio(0.0, 100, 10_000) == pytest.approx(1.0)
+    assert metrics.ppi_pp_theory_ratio(0.6, 100, 1e12) == pytest.approx(1 / (1 - 0.36))
+    assert metrics.ppi_pp_theory_ratio(0.6, 100, 100) == pytest.approx(1 / (1 - 0.36 / 2))
