@@ -172,3 +172,31 @@ def test_lambda_outside_unit_interval_is_exercised() -> None:
     ref_lam = _ref_lambda(v[:200], h[:200], h[200:], clip=False)
     assert ref_lam > 1.0
     _close(est.diagnostics["lambda_hat"], ref_lam)
+
+
+@pytest.mark.parametrize("seed, sizes", CASES)
+def test_dispute_rate_coding_matches_scalar_ppi_py(seed: int, sizes: tuple[int, int]) -> None:
+    """CFPB coding: scores 0 (disputed) / 7 and predictions (0, P(disputed)).
+
+    The NPS estimators then estimate -100 x dispute rate exactly, so the rate
+    -point/100 (bounds swapped) must equal ppi_py's scalar mean of the indicator.
+    """
+    from silent97.data.cfpb import dispute_scores
+
+    n, big_n = sizes
+    rng = np.random.default_rng(seed + 500)
+    d = rng.random(n + big_n) < 0.2
+    pd_ = np.clip(0.2 + 0.4 * (d - 0.2) + rng.normal(scale=0.15, size=n + big_n), 0, 1)
+    y = dispute_scores(d)
+    p = np.column_stack([np.zeros(n + big_n), pd_])
+    for clip in (True, False):
+        est = ppi.ppi_pp(y[:n], p[:n], p[n:], alpha=0.1, clip=clip)
+        lam = _ref_lambda(d[:n].astype(float), pd_[:n], pd_[n:], clip=clip)
+        lo, hi = ppi_mean_ci(d[:n].astype(float), pd_[:n], pd_[n:], alpha=0.1, lam=lam)
+        _close(-est.upper / 100, lo)
+        _close(-est.lower / 100, hi)
+        _close(est.diagnostics["lambda_hat"], lam)
+    est = classical.classical(y[:n])
+    lo, hi = classical_mean_ci(d[:n].astype(float), alpha=0.1)
+    _close(-est.upper / 100, lo)
+    _close(-est.lower / 100, hi)
