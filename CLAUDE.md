@@ -172,11 +172,11 @@ At the start of each phase, write `docs/progress/phase-N.md` with a short plan (
 - **Gate G2 (most important):** reference cross-checks pass at 1e-6; E1 coverage within criteria for every valid estimator at n ∈ {50, 100, 200, 500, 1000}; the human reviews every line of `estimators/`. Write a plain-English explanation of each estimator, pointing to the exact lines that implement each formula.
 
 ### Phase 3: Labelers and real text (weekend 5)
-- `labelers/base.py` (interface returning calibrated (n, 2) probabilities), `tabular.py` (LightGBM multiclass + isotonic calibration), `embedding.py` (sentence embeddings + logistic regression), `llm.py` (zero-shot JSON probabilities for detractor / passive / promoter), `cache.py` (disk cache keyed by hash of model, prompt version and input).
+- `labelers/base.py` (interface returning calibrated (n, 2) probabilities), `tabular.py` (LightGBM multiclass + isotonic calibration), `embedding.py` (sentence embeddings + logistic regression), `llm.py` (local open-weight model; zero-shot probabilities for detractor / passive / promoter from its answer-option token probabilities), `cache.py` (disk cache keyed by hash of model, prompt version and input).
 - `data/cfpb.py`: download the public CFPB complaint export, keep 2015 to April 2017 complaints with a narrative and a "Consumer disputed?" value; outcome = disputed. Labelers see narrative, product, issue and state only.
 - `experiments/e02_model_quality.py`, `experiments/e06_cfpb.py`.
-- LLM rules: dry-run mode that prints item count and projected cost before any call; hard cap on items and spend from config; never re-call for a cached key; never send anything except public CFPB or synthetic text.
-- **Gate G3:** all labels cached; spend under cap and reported; E6 coverage reported for each labeler.
+- LLM rules: dry-run mode that prints item count and projected compute before any scoring; hard cap on items from config; never re-score a cached key; only public CFPB or synthetic text as input. The model runs locally; nothing is sent to an external API.
+- **Gate G3:** all labels cached; LLM compute and item count reported; E6 coverage reported for each labeler.
 
 ### Phase 4: Active sampling, MRP, sensitivity (weekend 6)
 - `sampling/designs.py`: `uniform`, `stratified` (proportional and Neyman), `active` (π ∝ sqrt of predicted variance, mixed with a uniform floor, scaled to budget).

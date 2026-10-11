@@ -214,7 +214,7 @@ def estimate(y_lab, f_lab, f_unlab, *, alpha=0.1, weights=None, **kw) -> Estimat
 
 - `TabularLabeler`: LightGBM multiclass (detractor / passive / promoter) with isotonic calibration.
 - `EmbeddingLabeler`: sentence-embedding model plus logistic regression, for text.
-- `LLMLabeler`: zero-shot prompt returning probabilities for the three classes as JSON. All calls are cached to disk keyed by a hash of (model, prompt version, input), so experiments never re-call the API. Hard cap on items and spend set in config.
+- `LLMLabeler`: a lightweight open-weight instruction model run locally (default `Qwen/Qwen2.5-0.5B-Instruct` on CPU via `transformers`); zero-shot prompt whose next-token probabilities over the three answer options give the class probabilities. All scores are cached to disk keyed by a hash of (model, prompt version, input), so experiments never re-score. Hard cap on items set in config; no external API and no spend.
 
 **Sensitivity analysis** (`estimators/sensitivity.py`)
 
@@ -303,7 +303,7 @@ The biggest risk is not a bug that crashes but a subtle statistical error that l
 | LLM labeler is weak on complaint text | Small or no width gain | PPI++ falls back toward the classical estimate by design; report the gain honestly; tabular and embedding labelers as alternatives |
 | CFPB dispute rate is not NPS | Reviewers question relevance | Frame as a real-text validity check; keep NPS claims on the simulator |
 | MRP is slow inside 1,000-replicate sweeps | Experiments take days | Laplace-approximation fallback for sweeps; full NUTS on a subset to confirm agreement |
-| LLM API cost runs away | Unexpected bill | Disk cache, hard item cap in config, dry-run mode that prints projected cost |
+| Local LLM scoring is slow on CPU | E6 takes hours | Small model, bounded prompt length, disk cache, hard item cap, dry-run mode that prints projected compute |
 | Scope creep into causal drivers or dashboards | Project never ships | Out-of-scope list in this plan; new ideas go to `docs/ideas.md` |
 | Employer policy on outside work | Reputational or HR problem | No TD data or branding; check code of conduct before publishing; frame as general banking research |
 

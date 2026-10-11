@@ -114,7 +114,7 @@ only; the `text` extra pulls PyTorch), `src/silent97/labelers/{base,cache,tabula
 | `labelers/cache.py` | `make_key` = sha256 of `[model, prompt_version, payload]`; `DiskCache` for JSON and `.npy`, atomic writes, key validation |
 | `labelers/tabular.py` | LightGBM multiclass + isotonic calibration of the two used columns (see "Changes") |
 | `labelers/embedding.py` | Injectable encoder; on-disk encoding cache per (model, text list); logistic regression on embeddings; sentence-transformers loaded lazily (`text` extra) |
-| `labelers/llm.py` | Zero-shot JSON labeler. Dry run by default; cumulative item and spend caps from a ledger; worst-case reservation before each call or batch, so the cap is a hard cap; failures cached and never re-called; only `cfpb` / `synthetic` sources; key from `.env` / environment, never logged; base URL pinned to `https://api.anthropic.com`; Batches API (half price) or sync with server-side refusal fallback |
+| `labelers/llm.py` | Local open-weight LLM labeler (see "Change: local LLM" below). The first version, an Anthropic API labeler, was replaced at the reviewer's request |
 | `data/cfpb.py` | Download once; lazy scan of the multi-GB export; window, narrative and dispute filters; deterministic Parquet + manifest with drop counts and SHA-256s; one-hot product/issue/state; dispute coding; guard on labeler columns |
 | `eval/harness.py` | `labeler.kind: tabular`; scenario `labeler_features: signal_only`; `model_corr` per scenario; unlabeled set = pool minus draw; `run_grid(prepare=...)` for non-simulator datasets |
 | `eval/metrics.py` | `effective_n_bootstrap` (paired over replicates); `ppi_pp_theory_ratio` |
@@ -124,12 +124,9 @@ only; the `text` extra pulls PyTorch), `src/silent97/labelers/{base,cache,tabula
 
 ### Tests
 
-`make test`: 1,307 fast tests pass (about 1 minute). `make lint` is clean. New tests:
-- LLM labeler: 24 tests with a fake client. Dry run makes no calls; caps; worst-case
-  reservation keeps actual spend ≤ cap; cached keys and failures are never re-called;
-  keys change with model, prompt, effort or text; source restriction; batch path;
-  pinned base URL even when `ANTHROPIC_BASE_URL` is set; no secret in errors; the
-  committed config has no cap.
+`make test`: 1,305 fast tests pass (about 1 minute; 1,307 before the local-LLM change). `make lint` is clean. New tests:
+- LLM labeler: originally 24 tests against a fake Anthropic client; now 22 tests for
+  the local model (see "Change: local LLM").
 - Tabular calibration; embedding (stub encoder); CFPB loader on an export-shaped
   fixture (both date formats, blank narratives, N/A disputes, zip and plain CSV).
 - E6 smoke tests (all three labelers, stub encoder and fake LLM; dry run skips the LLM).
@@ -198,9 +195,9 @@ available, and **$0 was spent**. Nothing is mocked in place of real results.
 | Criterion | Status |
 |---|---|
 | All labels cached | ✗ Blocked: no CFPB data (network), no embedding model (network), no API key |
-| Spend under cap and reported | $0 spent. No cap is set (`max_spend_usd: null`), so no call is possible. The E6 run writes `docs/results/e06_cfpb_llm_report.json` |
+| LLM compute and items reported (was "spend under cap") | Local model, so $0 by construction. Item cap 10,000. The E6 run writes `docs/results/e06_cfpb_llm_report.json` (items scored, invalid, seconds) |
 | E6 coverage reported for each labeler | ✗ Not run |
-| `make test`, `make lint`, `make test-slow` | Pass: 1,307 fast tests, lint clean, slow suite 15/15 (4 min 43 s) after the Phase 3 changes |
+| `make test`, `make lint`, `make test-slow` | Pass: 1,305 fast tests, lint clean, slow suite 15/15 (4 min 43 s; estimators unchanged since) |
 
 ### Changes and judgment calls to review
 
@@ -230,31 +227,66 @@ available, and **$0 was spent**. Nothing is mocked in place of real results.
 7. **`make reproduce`** now runs simulate, E1 and E2. E6 joins once its labels are
    cached.
 
+### Change: local open-weight LLM instead of the Anthropic API (reviewer request)
+
+The reviewer asked for a lightweight open-source model run locally instead of the
+Claude API. `labelers/llm.py` was rewritten:
+
+- **Model and runtime:** `Qwen/Qwen2.5-0.5B-Instruct` (Apache-2.0, 494M parameters)
+  on CPU through Hugging Face `transformers`, set in `configs/llm.yaml` (a larger
+  model is a one-line change; `revision` can pin a commit). `transformers` and PyTorch
+  were already transitive dependencies of the approved `sentence-transformers`;
+  `transformers` is now declared explicitly in the `text` extra. The `anthropic` SDK
+  and the `llm` extra are removed.
+- **Probability readout:** one forward pass per complaint, no generation. The prompt
+  asks for a single letter A / B / C (detractor / passive / promoter). The class
+  probabilities are the softmax of the next-token logits for those three tokens,
+  computed in float64. A 0.5B model writes unreliable numeric JSON, so this replaces
+  the "zero-shot JSON" readout in the original spec. `docs/PLAN.md` and `CLAUDE.md`
+  Phase 3 were updated to match. The readout is deterministic, and PPI corrects any
+  miscalibration.
+- **Correctness details:** prompts use the model's chat template; batches are
+  left-padded so the last position is every row's next-token position (tested:
+  batched scores equal one-at-a-time scores); only the last position's logits are
+  computed (`logits_to_keep=1`); the option letters must be single tokens or loading
+  fails; item text is truncated so the prompt fits `max_input_tokens = 512`, and
+  truncations are counted.
+- **Rules kept:** dry run by default, which prints items and projected compute; a
+  cumulative item cap from a ledger; the cache key covers model@revision, prompt
+  version (instructions, options, truncation length) and text; invalid outputs are
+  cached as (1/3, 1/3, 1/3); only `cfpb` / `synthetic` sources. Spend is zero and
+  nothing leaves the machine.
+- **Tests:** 18 logic tests use a stub scorer, and 4 tests run the real `transformers`
+  path on a tiny random-weight Llama with a locally trained tokenizer and chat
+  template: valid probabilities, batching invariance, determinism, truncation, and
+  end-to-end labeling. The 4 real-path tests need the `text` extra (PyTorch); CI does
+  not install it, so they are skipped there via `pytest.importorskip`. They pass here.
+  Anthropic-specific tests (spend cap, batches, fallbacks, base URL, API key) were
+  removed together with that code.
+- **Speed:** a randomly initialized model with Qwen2.5-0.5B's exact architecture runs
+  at about 450 prompt tokens/s on this container's 4 CPU cores (0.9 s per 400-token
+  complaint, batch 8). So a 10,000-complaint pool takes about **2.5 hours** once, and
+  then replays from cache. A 5,000 pool takes about 1.2 hours.
+- **E6:** `--run-llm` (replacing `--allow-llm-calls`) scores the pool locally; without
+  it the LLM prints its dry-run plan and is skipped.
+
 ### What I need from you (to finish Gate G3)
 
-1. **Network access.** In the environment settings, allow these hosts:
-   `files.consumerfinance.gov` (CFPB export), and `huggingface.co`,
-   `cdn-lfs.huggingface.co` and `cas-bridge.xethub.hf.co` (embedding model).
-   Optionally add `download.pytorch.org`, for the CPU-only PyTorch build (much
-   smaller than PyPI's default).
-2. **API key.** Put `ANTHROPIC_API_KEY` in `.env` (git-ignored) or add it as an
-   environment secret. Please don't paste it into chat.
-3. **Decisions:** the LLM model (default `claude-opus-5-5`), the spend cap
-   (`max_spend_usd`) and the E6 pool size (default 10,000). The cost table is at the
-   top of this note: about $28 for 10,000 items with Opus 5.5 batched, about $0.70
-   with Haiku 5.5.
+1. **Network access** (environment settings, then Network access, then Allowed
+   domains): `files.consumerfinance.gov` for the CFPB export, and `huggingface.co`,
+   `cdn-lfs.huggingface.co` and `cas-bridge.xethub.hf.co` for both the embedding
+   model and the Qwen weights. Changes apply to a new session.
+2. **Pool size:** 10,000 (about 2.5 h of local LLM scoring) or 5,000 (about 1.2 h).
+   No API key and no spend cap are needed any more.
 
-Environment changes take effect in a new session. Then the sequence is
-`make cfpb`, then E6 with tabular and embedding only, then the LLM dry run (which
-prints the exact projected cost for your approval), then the approved run with
-`--allow-llm-calls`, then the G3 note.
+Then: `make cfpb`, then E6 with all three labelers (`--run-llm`, cached), then the G3
+note.
 
 ### Open questions
 
 1. A3 "within Monte Carlo error": judge it by widths (strict, 8/20), by MSE (18/20),
    or by a relative tolerance on the width ratio (for example within 2% of theory,
    which all 20 meet)?
-2. The decisions in "What I need from you".
+2. Pool size (above).
 
-Phase 3 stops here: Gate G3 cannot be completed until the items in "What I need from
-you" are in place.
+Phase 3 stops here: Gate G3 cannot be completed until the network access is in place.
