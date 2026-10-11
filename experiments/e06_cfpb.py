@@ -19,12 +19,14 @@ Design (configs/e06_cfpb.yaml):
    estimator, with the harness's disjointness guard. ``ppi_crossfit`` cross-fits a
    logistic model on the one-hot product, issue and state.
 
-The LLM labeler runs only with ``--allow-llm-calls`` *and* a spend cap set in
-``configs/llm.yaml``; otherwise it prints its dry-run plan and is skipped.
+The LLM labeler is a small open-weight model run locally on CPU
+(``configs/llm.yaml``); nothing is sent to an external API. Scoring takes hours, so
+it runs only with ``--run-llm``. Otherwise it prints its dry-run plan (items,
+projected compute) and is skipped. Scores are cached, so later runs replay them.
 
 Usage::
 
-    uv run python experiments/e06_cfpb.py [--allow-llm-calls] [--labelers tabular embedding]
+    uv run python experiments/e06_cfpb.py [--run-llm] [--labelers tabular embedding]
 """
 
 from __future__ import annotations
@@ -106,8 +108,8 @@ def build_scenarios(
     df: pl.DataFrame,
     *,
     encoder: embedding.Encoder | None,
-    llm_client: Any,
-    allow_llm_calls: bool,
+    llm_scorer: llm.Scorer | None,
+    run_llm: bool,
     log: Callable[[str], None],
 ) -> tuple[list[harness.PreparedScenario], dict[str, Any]]:
     """Split, fit or call each labeler, and return one prepared scenario per labeler."""
@@ -127,7 +129,7 @@ def build_scenarios(
     value = np.where(scores == 0, -100.0, 0.0)
     truth = float(value[pool].mean())
     cache_root = Path(cfg.cache_dir)
-    llm_report: dict[str, Any] = {"dry_run": True, "spent_usd": 0.0, "n_called": 0}
+    llm_report: dict[str, Any] = {"dry_run": True, "spent_usd": 0.0, "n_scored": 0}
 
     preds: dict[str, np.ndarray] = {}
     for name in cfg.labelers:
@@ -160,22 +162,29 @@ def build_scenarios(
                 for i in pool
             ]
             llm_cfg = llm.load_config(cfg.llm_config)
+            scorer = llm_scorer
+            if run_llm and scorer is None:
+                scorer = llm.transformers_scorer(llm_cfg)
             res = llm.label_items(
-                items, llm_cfg, cache=DiskCache(cache_root / "llm"), client=llm_client,
-                dry_run=not allow_llm_calls, log=log,
-            )  # fmt: skip
+                items,
+                llm_cfg,
+                cache=DiskCache(cache_root / "llm"),
+                scorer=scorer,
+                dry_run=not run_llm,
+                log=log,
+            )
             llm_report = {
                 "dry_run": res.predictions is None,
-                "model": llm_cfg.model,
-                "mode": llm_cfg.mode,
-                "max_spend_usd": llm_cfg.max_spend_usd,
+                "model": llm_cfg.model_id,
+                "device": llm_cfg.device,
                 "plan": dataclasses.asdict(res.plan),
-                "n_called": res.n_called,
+                "n_scored": res.n_scored,
                 "n_failed": res.n_failed,
-                "spent_usd": res.spent_usd,
+                "seconds": res.seconds,
+                "spent_usd": 0.0,
             }
             if res.predictions is None:
-                log("LLM labeler skipped (dry run). Pass --allow-llm-calls after setting a cap.")
+                log("LLM labeler skipped (dry run). Pass --run-llm to score the pool locally.")
                 continue
             preds[name] = res.predictions
 
@@ -205,18 +214,16 @@ def run(
     cfg: E6Config,
     *,
     encoder: embedding.Encoder | None = None,
-    llm_client: Any = None,
-    allow_llm_calls: bool = False,
+    llm_scorer: llm.Scorer | None = None,
+    run_llm: bool = False,
     results_dir: str | Path = "data/results",
     docs_dir: str | Path = "docs/results",
     log: Callable[[str], None] = print,
 ) -> dict[str, Path]:
     """Run E6 and write results, summary, figures and the LLM report."""
     df = pl.read_parquet(cfg.data)
-    if allow_llm_calls and "llm" in cfg.labelers and llm_client is None:
-        llm_client = llm.make_client(llm.load_config(cfg.llm_config))
     preps, llm_report = build_scenarios(
-        cfg, df, encoder=encoder, llm_client=llm_client, allow_llm_calls=allow_llm_calls, log=log
+        cfg, df, encoder=encoder, llm_scorer=llm_scorer, run_llm=run_llm, log=log
     )
     if not preps:
         raise RuntimeError("no labeler produced predictions")
@@ -276,12 +283,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="E6: CFPB dispute-rate benchmark")
     parser.add_argument("--config", default="configs/e06_cfpb.yaml")
     parser.add_argument("--labelers", nargs="*", default=None, help="override the labeler list")
-    parser.add_argument("--allow-llm-calls", action="store_true", help="permit paid LLM calls")
+    parser.add_argument("--run-llm", action="store_true", help="score the pool with the local LLM")
     args = parser.parse_args(argv)
     cfg = load_config(args.config)
     if args.labelers is not None:
         cfg = dataclasses.replace(cfg, labelers=tuple(args.labelers))
-    out = run(cfg, allow_llm_calls=args.allow_llm_calls)
+    out = run(cfg, run_llm=args.run_llm)
     print(Path(out["summary"]).with_suffix(".md").read_text())
     return 0
 

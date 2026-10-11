@@ -1,4 +1,4 @@
-"""Smoke tests for E6 on a synthetic CFPB-shaped file (stub encoder, fake LLM client)."""
+"""Smoke tests for E6 on a synthetic CFPB-shaped file (stub encoder, stub LLM scorer)."""
 
 import csv
 import importlib.util
@@ -12,7 +12,7 @@ import pytest
 
 from silent97.data import cfpb
 from tests.unit.test_embedding_labeler import StubEncoder
-from tests.unit.test_llm_labeler import FakeClient
+from tests.unit.test_llm_labeler import StubScorer
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -49,7 +49,7 @@ def cfpb_parquet(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 def _cfg(tmp: Path, data: Path, **extra: object) -> Path:
     llm_cfg = tmp / "llm.yaml"
-    llm_cfg.write_text("mode: sync\nmax_items: 1000\nmax_spend_usd: 5.0\n")
+    llm_cfg.write_text("model: stub/model\nmax_items: 1000\n")
     cfg = {
         "name": "e06_tiny",
         "seed": 3,
@@ -74,15 +74,15 @@ def _cfg(tmp: Path, data: Path, **extra: object) -> Path:
 def test_e06_runs_with_all_labelers(tmp_path: Path, cfpb_parquet: Path) -> None:
     e06 = _load_e06()
     cfg = e06.load_config(_cfg(tmp_path, cfpb_parquet))
-    client = FakeClient()
+    scorer = StubScorer()
     out = e06.run(
-        cfg, encoder=StubEncoder(), llm_client=client, allow_llm_calls=True,
+        cfg, encoder=StubEncoder(), llm_scorer=scorer, run_llm=True,
         results_dir=tmp_path / "r", docs_dir=tmp_path / "d", log=lambda s: None,
     )  # fmt: skip
     results = pl.read_parquet(out["results"])
     assert set(results["scenario"]) == {"tabular", "embedding", "llm"}
     assert results.height == 3 * 3 * 5
-    assert len(client.sync_calls) == 300  # the pool only, once each
+    assert scorer.n_scored == 300  # the pool only, once each
     # Dispute-rate scale: truth equals the pool's dispute rate in percent.
     df = pl.read_parquet(cfpb_parquet)
     truth = results["truth_rate_pct"][0]
@@ -91,20 +91,20 @@ def test_e06_runs_with_all_labelers(tmp_path: Path, cfpb_parquet: Path) -> None:
     summary = pl.read_csv(out["summary"])
     assert {"scenario", "estimator", "coverage", "mean_width_pp"} <= set(summary.columns)
     report = json.loads(Path(out["llm_report"]).read_text())
-    assert report["n_called"] == 300 and report["spent_usd"] > 0
+    assert report["n_scored"] == 300 and report["spent_usd"] == 0.0
     assert df.height == 600
 
 
 def test_e06_dry_run_skips_llm(tmp_path: Path, cfpb_parquet: Path) -> None:
     e06 = _load_e06()
     cfg = e06.load_config(_cfg(tmp_path, cfpb_parquet))
-    client = FakeClient()
+    scorer = StubScorer()
     lines: list[str] = []
     out = e06.run(
-        cfg, encoder=StubEncoder(), llm_client=client, allow_llm_calls=False,
+        cfg, encoder=StubEncoder(), llm_scorer=scorer, run_llm=False,
         results_dir=tmp_path / "r", docs_dir=tmp_path / "d", log=lines.append,
     )  # fmt: skip
-    assert client.sync_calls == []
+    assert scorer.n_scored == 0
     results = pl.read_parquet(out["results"])
     assert set(results["scenario"]) == {"tabular", "embedding"}
     assert any("dry run" in line.lower() for line in lines)
