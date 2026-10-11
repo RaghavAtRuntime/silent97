@@ -2,7 +2,7 @@
 # Hugging Face transformers; nothing is sent to an external API and there is no
 # spend. The weights download once from huggingface.co (needs network access).
 model: Qwen/Qwen2.5-0.5B-Instruct   # Apache-2.0, 0.5B parameters
-revision: null                      # pin a commit hash for byte-for-byte reproducibility
+revision: 7ae557604adf67be50417f59c2c2f167def9a775  # pinned commit (fetched 2026-10-11)
 max_items: 5000                     # cumulative cap on items scored from this cache (= E6 pool)
 max_input_tokens: 512               # longer prompts have the complaint text truncated
 batch_size: 8
