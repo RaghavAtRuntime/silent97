@@ -289,3 +289,121 @@ def test_real_labeling_end_to_end(tiny_model_dir: Path, tmp_path: Path) -> None:
     )
     assert res.predictions is not None and res.n_failed == 0
     nps.validate_predictions(res.predictions)
+
+
+# --------------------------------------------------------------------------- stronger model support
+
+
+def test_batches_are_sorted_by_length(tmp_path: Path) -> None:
+    """Similar lengths share a batch (less padding); results still map to their items."""
+    texts = ["x" * n for n in (50, 5, 40, 10, 30, 20)]
+    items = [llm.LLMItem(item_id=str(i), source="cfpb", text=t) for i, t in enumerate(texts)]
+    seen: list[list[int]] = []
+
+    def scorer(batch: list[str]) -> np.ndarray:
+        seen.append([len(t) for t in batch])
+        # Encode the text length in the probabilities so the mapping can be checked.
+        p = np.array([[len(t) / 100, 0.0, 1 - len(t) / 100] for t in batch])
+        return p
+
+    res = llm.label_items(
+        items, _cfg(batch_size=2), cache=DiskCache(tmp_path), scorer=scorer, dry_run=False
+    )
+    assert seen == [[5, 10], [20, 30], [40, 50]]
+    assert res.class_probs is not None
+    np.testing.assert_allclose(res.class_probs[:, 0], [len(t) / 100 for t in texts])
+
+
+def test_weights_dtype_validation() -> None:
+    with pytest.raises(ValueError, match="weights_dtype"):
+        _cfg(weights_dtype="int4")
+    with pytest.raises(ValueError, match="dtype"):
+        _cfg(dtype="float8")
+    assert _cfg(weights_dtype="bfloat16", dtype="float32").weights_dtype == "bfloat16"
+
+
+def test_render_prompt_disables_thinking() -> None:
+    transformers = pytest.importorskip("transformers")
+    tokenizers = pytest.importorskip("tokenizers")
+    tok = tokenizers.Tokenizer(tokenizers.models.WordLevel({"<unk>": 0}, unk_token="<unk>"))
+    fast = transformers.PreTrainedTokenizerFast(tokenizer_object=tok, unk_token="<unk>")
+    fast.chat_template = (
+        "{% for m in messages %}[{{ m['role'] }}]{{ m['content'] }}{% endfor %}"
+        "{% if add_generation_prompt %}[assistant]"
+        "{% if enable_thinking is defined and enable_thinking is false %}<think></think>"
+        "{% else %}<think>{% endif %}{% endif %}"
+    )
+    out = llm.render_prompt(fast, "hello")
+    assert out.endswith("[assistant]<think></think>")
+    assert out.startswith(f"[system]{llm.SYSTEM_PROMPT}[user]hello")
+
+
+def test_upcast_linears_keeps_weights_and_computes_in_float32() -> None:
+    torch = pytest.importorskip("torch")
+    torch.manual_seed(0)
+    model = torch.nn.Sequential(
+        torch.nn.Embedding(10, 4), torch.nn.Linear(4, 3), torch.nn.LayerNorm(3)
+    ).to(torch.bfloat16)
+    # Reference: a float32 copy holding exactly the same (bf16-rounded) values.
+    ref = torch.nn.Sequential(
+        torch.nn.Embedding(10, 4), torch.nn.Linear(4, 3), torch.nn.LayerNorm(3)
+    )
+    ref.load_state_dict({k: v.float() for k, v in model.state_dict().items()})
+    ids = torch.tensor([[1, 2, 3]])
+    with torch.no_grad():
+        expected = ref(ids)
+    n = llm.upcast_linears(model, compute_dtype=torch.float32)
+    assert n == 1
+    assert model[1].weight.dtype == torch.bfloat16  # stored compactly
+    assert model[2].weight.dtype == torch.float32  # everything else in the compute dtype
+    with torch.no_grad():
+        out = model(ids)
+    assert out.dtype == torch.float32
+    torch.testing.assert_close(out, expected, rtol=0, atol=1e-6)
+
+
+@pytest.fixture(scope="module")
+def tiny_hybrid_dir(tiny_model_dir: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A tiny random Qwen3.5-style hybrid model (linear + full attention layers)."""
+    torch = pytest.importorskip("torch")
+    transformers = pytest.importorskip("transformers")
+    cfg_cls = getattr(transformers, "Qwen3_5TextConfig", None)
+    model_cls = getattr(transformers, "Qwen3_5ForCausalLM", None)
+    if cfg_cls is None or model_cls is None:
+        pytest.skip("transformers has no Qwen3.5 support")
+    out = tmp_path_factory.mktemp("tiny_hybrid")
+    tok = transformers.AutoTokenizer.from_pretrained(tiny_model_dir)
+    tok.save_pretrained(out)
+    torch.manual_seed(0)
+    config = cfg_cls(
+        vocab_size=len(tok), hidden_size=32, intermediate_size=64, num_hidden_layers=4,
+        num_attention_heads=4, num_key_value_heads=2, head_dim=8,
+        linear_num_key_heads=2, linear_num_value_heads=4, linear_key_head_dim=8,
+        linear_value_head_dim=8, linear_conv_kernel_dim=4, full_attention_interval=2,
+        max_position_embeddings=256, pad_token_id=tok.pad_token_id,
+        tie_word_embeddings=True,
+    )  # fmt: skip
+    model_cls(config).to(torch.bfloat16).save_pretrained(out)
+    return out
+
+
+def test_hybrid_scorer_batching_matches_single(tiny_hybrid_dir: Path) -> None:
+    """Left padding must not leak into the recurrent (linear-attention) state."""
+    cfg = _cfg(model=str(tiny_hybrid_dir), dtype="float32", weights_dtype="bfloat16")
+    scorer = llm.transformers_scorer(cfg)
+    texts = ["short", "a much longer complaint about a credit card fee and nobody called back"] * 2
+    batched = scorer(texts)
+    single = np.vstack([scorer([t]) for t in texts])
+    np.testing.assert_allclose(batched, single, atol=1e-5)
+    assert np.isfinite(batched).all()
+    np.testing.assert_allclose(batched.sum(axis=1), 1.0, atol=1e-9)
+
+
+def test_hybrid_upcast_matches_float32_of_stored_weights(tiny_hybrid_dir: Path) -> None:
+    """bf16 storage + float32 compute equals a float32 model holding the same bf16 weights."""
+    texts = ["short", "a much longer complaint about a credit card fee and nobody called back"]
+    upcast = llm.transformers_scorer(
+        _cfg(model=str(tiny_hybrid_dir), dtype="float32", weights_dtype="bfloat16")
+    )(texts)
+    full = llm.transformers_scorer(_cfg(model=str(tiny_hybrid_dir), dtype="float32"))(texts)
+    np.testing.assert_allclose(upcast, full, atol=1e-6)

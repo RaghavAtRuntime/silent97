@@ -1,13 +1,22 @@
-# Local LLM labeler settings (src/silent97/labelers/llm.py). Runs on CPU through
-# Hugging Face transformers; nothing is sent to an external API and there is no
-# spend. The weights download once from huggingface.co (needs network access).
-model: Qwen/Qwen2.5-0.5B-Instruct   # Apache-2.0, 0.5B parameters
-revision: 7ae557604adf67be50417f59c2c2f167def9a775  # pinned commit (fetched 2026-10-11)
-max_items: 5000                     # cumulative cap on items scored from this cache (= E6 pool)
+# Local LLM labeler settings (src/silent97/labelers/llm.py). Runs through Hugging Face
+# transformers; nothing is sent to an external API and there is no spend. The weights
+# download once from huggingface.co (needs network access).
+#
+# Model: the strongest open (Apache-2.0, ungated) instruction model that runs
+# comfortably on a 16 GB Apple M1: Qwen3.5-4B, about 8.4 GB of bf16 weights for the
+# text model. On a Mac, set `device: mps`, `dtype: bfloat16` and `weights_dtype: null`.
+# On a CPU without native bf16 (like the x86 machine that produced the cached labels),
+# keep the weights in bf16 and compute in float32 (`weights_dtype: bfloat16`): float32
+# matrix products are about 4x faster there, and a full float32 copy (17 GB) would not
+# fit in memory.
+model: Qwen/Qwen3.5-4B                                  # Apache-2.0, 4.2B parameters (text)
+revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a       # pinned commit (fetched 2026-10-11)
+max_items: 10000                    # cumulative cap over this cache: 4,992 (Qwen2.5-0.5B run) + 5,000
 max_input_tokens: 512               # longer prompts have the complaint text truncated
 batch_size: 8
 device: cpu
-dtype: float32
+dtype: float32                      # compute dtype
+weights_dtype: bfloat16             # storage dtype for linear-layer weights
 threads: null                       # torch default
-tokens_per_second: 450              # dry-run projection; measured for this architecture on 4 CPU cores
+tokens_per_second: 32               # dry-run projection; measured for Qwen3.5-4B on 4 x86 cores
 chars_per_token: 3.5

@@ -1,8 +1,8 @@
 """Local LLM labeler: zero-shot probabilities for detractor / passive / promoter.
 
-A small open-weight instruction model (default ``Qwen/Qwen2.5-0.5B-Instruct``,
-Apache-2.0) runs locally on CPU through Hugging Face ``transformers``. Nothing is
-sent to any external API, and there is no spend.
+An open-weight instruction model (set in ``configs/llm.yaml``; Apache-2.0 models
+only) runs locally through Hugging Face ``transformers``, on CPU or Apple-silicon
+``mps``. Nothing is sent to any external API, and there is no spend.
 
 How probabilities are produced. Each item gets one forward pass, with no
 generation. The chat-formatted prompt asks for a single letter, A (detractor),
@@ -72,8 +72,12 @@ __all__ = [
     "load_config",
     "plan_run",
     "render_cfpb_item",
+    "render_prompt",
     "transformers_scorer",
+    "upcast_linears",
 ]
+
+_DTYPES: Final = frozenset({"float32", "bfloat16", "float16"})
 
 PROMPT_VERSION: Final = "nps-local-choice-v1"
 ALLOWED_SOURCES: Final = frozenset({"cfpb", "synthetic"})
@@ -116,6 +120,7 @@ class LLMConfig:
     batch_size: int = 8
     device: str = "cpu"
     dtype: str = "float32"
+    weights_dtype: str | None = None
     threads: int | None = None
     tokens_per_second: float = 450.0
     chars_per_token: float = 3.5
@@ -125,6 +130,13 @@ class LLMConfig:
             raise ValueError("max_items >= 0, batch_size >= 1 and max_input_tokens >= 16 required")
         if self.tokens_per_second <= 0 or self.chars_per_token <= 0:
             raise ValueError("tokens_per_second and chars_per_token must be positive")
+        if self.dtype not in _DTYPES:
+            raise ValueError(f"dtype must be one of {sorted(_DTYPES)}, got {self.dtype!r}")
+        if self.weights_dtype is not None and self.weights_dtype not in _DTYPES:
+            raise ValueError(
+                f"weights_dtype must be null or one of {sorted(_DTYPES)}, "
+                f"got {self.weights_dtype!r}"
+            )
 
     @property
     def model_id(self) -> str:
@@ -291,6 +303,9 @@ def label_items(
         )
     keys = _keys(items, cfg)
     todo = list({k: it for k, it in zip(keys, items, strict=True) if k not in cache}.items())
+    # Similar lengths share a batch, so less compute goes to padding. Scores do not
+    # depend on batch composition (left padding is masked; tested).
+    todo.sort(key=lambda kv: len(kv[1].text))
     if todo and scorer is None:
         raise ValueError("a scorer is required when dry_run=False and items are uncached")
 
@@ -335,12 +350,77 @@ def label_items(
     return LabelResult(plan, predictions, class_probs, len(todo), n_failed, seconds)
 
 
+def render_prompt(tok: Any, text: str) -> str:
+    """The chat-formatted prompt for one item, ending at the answer position.
+
+    Thinking is switched off (``enable_thinking=False``): the readout needs the answer
+    letter as the very next token, not a ``<think>`` block. Templates that do not use
+    the flag ignore it.
+    """
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": text},
+    ]
+    out: str = tok.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
+    )
+    return out
+
+
+def upcast_linears(model: Any, *, compute_dtype: Any) -> int:
+    """Keep every ``nn.Linear`` weight in its stored dtype, but compute in ``compute_dtype``.
+
+    Each linear layer's weight is cast to ``compute_dtype`` only for its own matrix
+    product, so a bf16 checkpoint needs about half the memory of a float32 copy while
+    giving float32 results (CPUs without native bf16 run float32 several times
+    faster). Every other parameter and buffer is converted to ``compute_dtype``;
+    embeddings whose weight is shared with a linear layer (tied) keep it and have
+    their output cast. Returns the number of linear layers wrapped.
+    """
+    import torch
+    import torch.nn.functional as F
+
+    class _UpcastLinear(torch.nn.Module):
+        def __init__(self, lin: Any) -> None:
+            super().__init__()
+            self.weight = lin.weight
+            self.bias = (
+                None
+                if lin.bias is None
+                else torch.nn.Parameter(lin.bias.detach().to(compute_dtype))
+            )
+
+        def forward(self, x: Any) -> Any:
+            return F.linear(x, self.weight.to(compute_dtype), self.bias)
+
+    n = 0
+    for module in list(model.modules()):
+        for name, child in list(module.named_children()):
+            if isinstance(child, torch.nn.Linear):
+                setattr(module, name, _UpcastLinear(child))
+                n += 1
+    kept = {id(m.weight) for m in model.modules() if isinstance(m, _UpcastLinear)}
+    for param in model.parameters():
+        if id(param) not in kept and param.is_floating_point():
+            param.data = param.data.to(compute_dtype)
+    for buf in model.buffers():
+        if buf.is_floating_point():
+            buf.data = buf.data.to(compute_dtype)
+    for module in model.modules():
+        if isinstance(module, torch.nn.Embedding) and module.weight.dtype != compute_dtype:
+            module.register_forward_hook(lambda _m, _i, out: out.to(compute_dtype))
+    return n
+
+
 def transformers_scorer(cfg: LLMConfig) -> Scorer:
     """A local ``transformers`` scorer (needs the ``text`` extra and the model weights).
 
     Prompts are rendered with the model's chat template (system + user + generation
-    prompt) and left-padded, so the last position of every row is its own next-token
-    position. The item text is truncated so the full prompt fits ``max_input_tokens``.
+    prompt, thinking off) and left-padded, so the last position of every row is its own
+    next-token position. The item text is truncated so the full prompt fits
+    ``max_input_tokens``. With ``weights_dtype`` set and different from ``dtype``, the
+    weights are loaded in ``weights_dtype`` and the compute runs in ``dtype``
+    (:func:`upcast_linears`).
     """
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -351,9 +431,13 @@ def transformers_scorer(cfg: LLMConfig) -> Scorer:
     tok.padding_side = "left"
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
+    compute = getattr(torch, cfg.dtype)
+    stored = getattr(torch, cfg.weights_dtype or cfg.dtype)
     model: Any = AutoModelForCausalLM.from_pretrained(
-        cfg.model, revision=cfg.revision, dtype=getattr(torch, cfg.dtype)
+        cfg.model, revision=cfg.revision, dtype=stored
     )
+    if stored != compute:
+        upcast_linears(model, compute_dtype=compute)
     model = model.to(cfg.device)
     model.eval()
     option_ids = []
@@ -364,12 +448,7 @@ def transformers_scorer(cfg: LLMConfig) -> Scorer:
         option_ids.append(ids[0])
 
     def render(text: str) -> str:
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": text},
-        ]
-        out: str = tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        return out
+        return render_prompt(tok, text)
 
     overhead = len(tok(render(""), add_special_tokens=False)["input_ids"])
     budget = max(cfg.max_input_tokens - overhead, 8)
