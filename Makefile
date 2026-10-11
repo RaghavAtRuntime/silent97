@@ -1,4 +1,4 @@
-.PHONY: setup test test-slow lint format coverage reproduce demo simulate e01
+.PHONY: setup test test-slow lint format coverage reproduce demo simulate e01 e02 e06 cfpb
 
 UV ?= uv
 
@@ -30,8 +30,20 @@ simulate:
 e01:
 	$(UV) run python experiments/e01_coverage.py --config configs/e01_coverage.yaml
 
+e02:
+	$(UV) run python experiments/e02_model_quality.py --config configs/e02_model_quality.yaml
+
+# CFPB data (needs network access to files.consumerfinance.gov).
+cfpb:
+	$(UV) run python -m silent97.data.cfpb
+
+# E6 replays cached labels; paid LLM calls need --allow-llm-calls and a cap (see configs/llm.yaml).
+e06:
+	$(UV) run python experiments/e06_cfpb.py --config configs/e06_cfpb.yaml
+
 # Every experiment result and figure. Experiments are added as their phases land.
-reproduce: simulate e01
+# E6 joins once the CFPB data and its labels are cached (Gate G3).
+reproduce: simulate e01 e02
 
 # The demo is built in Phase 5.
 demo:
