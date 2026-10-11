@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: uv sync --locked --all-extras
+        run: uv sync --locked --extra llm  # the text extra pulls PyTorch; its tests use a stub encoder
       - name: Lint
         run: make lint
       - name: Test
