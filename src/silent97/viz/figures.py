@@ -195,6 +195,12 @@ def coverage_figure(
     return _save(fig, path)
 
 
+_EFFICIENCY_METRICS: dict[str, tuple[str, str]] = {
+    "mse": ("mse_ratio", "MSE ratio, classical / method (classical responses per response)"),
+    "widths": ("ratio", "effective n / n from widths (classical responses per response)"),
+}
+
+
 def efficiency_figure(
     table: pl.DataFrame,
     path: str | Path,
@@ -202,15 +208,22 @@ def efficiency_figure(
     theory: dict[int, Any],
     threshold: tuple[float, float] = (0.6, 1.5),
     estimators: tuple[str, ...] = ("ppi", "ppi_pp"),
+    metric: str = "mse",
     title: str = "",
 ) -> Path:
-    """Effective n / n against model-outcome correlation, one panel per survey size n.
+    """Efficiency against model-outcome correlation, one panel per survey size n.
 
-    ``table`` has columns ``n_labeled``, ``estimator``, ``model_corr``, ``ratio``,
-    ``ratio_lo`` and ``ratio_hi`` (paired-bootstrap 95% interval). ``theory[n]`` is a
-    callable rho -> ratio drawn as the reference curve. The dashed segment marks the
-    A3 requirement (ratio >= threshold[1] for rho >= threshold[0]).
+    ``table`` has columns ``n_labeled``, ``estimator``, ``model_corr`` and, for
+    ``metric="mse"``, ``mse_ratio``/``mse_ratio_lo``/``mse_ratio_hi`` (MSE_classical /
+    MSE_method, the measure A3 is judged on) or, for ``metric="widths"``,
+    ``ratio``/``ratio_lo``/``ratio_hi`` ((classical width / method width)²), each with a
+    paired-bootstrap 95% interval. ``theory[n]`` is a callable rho -> ratio drawn as the
+    reference curve. The dashed segment marks the A3 requirement (ratio >= threshold[1]
+    for rho >= threshold[0]); it is drawn on the MSE figure only.
     """
+    if metric not in _EFFICIENCY_METRICS:
+        raise ValueError(f"metric must be one of {sorted(_EFFICIENCY_METRICS)}, got {metric!r}")
+    col, ylabel = _EFFICIENCY_METRICS[metric]
     apply_style()
     ns = sorted(table["n_labeled"].unique().to_list())
     fig, axes = plt.subplots(1, len(ns), figsize=(5.2 * len(ns), 4.4), sharey=True, squeeze=False)
@@ -220,8 +233,9 @@ def efficiency_figure(
         curve = theory[n]
         ax.plot(grid, [curve(r) for r in grid], color=REFERENCE, lw=1.2,
                 label="theory, PPI++: 1 / (1 - ρ² / (1 + n/N))")  # fmt: skip
-        ax.plot([threshold[0], rho_max + 0.05], [threshold[1]] * 2, color=REFERENCE, lw=0.8,
-                ls="--", label=f"A3: ≥ {threshold[1]}× when ρ ≥ {threshold[0]}")  # fmt: skip
+        if metric == "mse":
+            ax.plot([threshold[0], rho_max + 0.05], [threshold[1]] * 2, color=REFERENCE, lw=0.8,
+                    ls="--", label=f"A3: ≥ {threshold[1]}× when ρ ≥ {threshold[0]}")  # fmt: skip
         ax.axhline(1.0, color=GRID, lw=1.0)
         k = len(estimators)
         for i, name in enumerate(estimators):
@@ -231,8 +245,8 @@ def efficiency_figure(
                 continue
             style = ESTIMATOR_STYLE[name]
             x = rows["model_corr"].to_numpy() + 0.014 * (i - (k - 1) / 2)
-            y = rows["ratio"].to_numpy()
-            err = [y - rows["ratio_lo"].to_numpy(), rows["ratio_hi"].to_numpy() - y]
+            y = rows[col].to_numpy()
+            err = [y - rows[f"{col}_lo"].to_numpy(), rows[f"{col}_hi"].to_numpy() - y]
             # The first estimator is drawn hollow so near-identical points stay visible.
             face = "none" if i == 0 and k > 1 else style["color"]
             edge = style["color"] if i == 0 and k > 1 else SURFACE
@@ -242,7 +256,7 @@ def efficiency_figure(
         ax.set_title(f"n = {n} surveyed customers")
         ax.set_xlabel("model-outcome correlation ρ (predicted vs true NPS value)")
         ax.set_xlim(-0.02, rho_max + 0.05)
-    axes[0][0].set_ylabel("effective n / n (classical responses per response)")
+    axes[0][0].set_ylabel(ylabel)
     handles, labels = axes[0][0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.01))
     if title:

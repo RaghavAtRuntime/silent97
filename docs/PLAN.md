@@ -84,7 +84,7 @@ The project succeeds when a reviewer can run one command, see that corrected int
 | --- | --- | --- |
 | A1 | Coverage of nominal 90% intervals, missing-at-random scenarios, n from 50 to 1,000, 1,000 replicates each | Between 88% and 92% for every valid estimator |
 | A2 | Our PPI and PPI++ match the reference `ppi_py` library on identical inputs | Point estimates and interval bounds agree to 1e-6 |
-| A3 | Effective-sample-size gain of PPI++ over classical, as a function of model–outcome correlation ρ (theory: about 1/(1 − ρ²) when N ≫ n) | Within Monte Carlo error of 1/(1 − ρ²), and at least 1.5× when ρ ≥ 0.6 (reported honestly if lower) |
+| A3 | Effective-sample-size gain of PPI++ over classical, as a function of model–outcome correlation ρ (theory: about 1/(1 − ρ²) when N ≫ n), judged on the MSE ratio MSE_classical / MSE_PPI++ (the precision achieved; the width-based n\_eff is reported alongside) | Within Monte Carlo error of 1/(1 − ρ²), and at least 1.5× when ρ ≥ 0.6 (reported honestly if lower) |
 | A4 | Active sampling width at equal survey budget vs uniform sampling | Narrower, with coverage still meeting A1 |
 | A5 | MRP segment estimates for cells with fewer than 30 responses | Lower RMSE than raw segment means across replicates |
 | A6 | Missing-not-at-random scenarios | Bias is shown, not hidden; sensitivity bounds contain the truth at the stated assumption |
