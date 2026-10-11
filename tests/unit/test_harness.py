@@ -135,6 +135,10 @@ def test_write_results(results: pl.DataFrame, tmp_path: Path) -> None:
         ({"labeler": {"train_mechanism": "respondents"}}, "train_mechanism"),
         ({"labeler": {"kind": "forest"}}, "kind"),
         (
+            {"scenarios": [{"name": "a", "mechanism": "mcar", "labeler_features": "some"}]},
+            "labeler_features",
+        ),
+        (
             {"scenarios": [{"name": "a", "mechanism": "mcar"}, {"name": "a", "mechanism": "mar"}]},
             "unique",
         ),
@@ -183,3 +187,34 @@ def test_pool_subset_defines_unlabeled_set() -> None:
     cfg = harness.GridConfig.from_dict({**SMALL, "estimators": ["ppi", "ppi_crossfit"]})
     rows = harness.run_replicate(prep, cfg, 0, 40, 0)
     assert [r["n_unlabeled"] for r in rows] == [1960, 1960]
+
+
+def test_model_corr_recorded(results: pl.DataFrame) -> None:
+    cfg = harness.GridConfig.from_dict(SMALL)
+    prep = harness.prepare_scenario(cfg, 0)
+    h = prep.p_all[prep.pool] @ nps.NPS_GRADIENT
+    v = nps.nps_values(prep.scores[prep.pool])
+    assert prep.model_corr == pytest.approx(np.corrcoef(h, v)[0, 1])
+    got = results.filter(pl.col("scenario") == "mcar")["model_corr"].unique().to_list()
+    assert got == [pytest.approx(prep.model_corr)]
+
+
+def test_signal_only_labeler_has_no_covariate_signal() -> None:
+    """With signal strength 0 and only the signal feature, the model knows nothing."""
+    scenario = {
+        "name": "s0",
+        "mechanism": "mcar",
+        "signal_strength": 0.0,
+        "labeler_features": "signal_only",
+    }
+    cfg = harness.GridConfig.from_dict(
+        {
+            **SMALL,
+            "population": {"n_customers": 20_000},
+            "labeler": {"n_train": 2000},
+            "scenarios": [scenario],
+        }
+    )
+    prep = harness.prepare_scenario(cfg, 0)
+    assert prep.x.shape[1] == 1
+    assert abs(prep.model_corr) < 0.06

@@ -32,7 +32,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -59,6 +59,7 @@ __all__ = [
     "check_disjoint",
     "draw_respondents",
     "load_grid_config",
+    "model_correlation",
     "prepare_scenario",
     "run_grid",
     "run_replicate",
@@ -84,6 +85,7 @@ RESULT_COLUMNS = (
     "covered",
     "lambda_hat",
     "effective_n",
+    "model_corr",
 )
 
 
@@ -157,8 +159,15 @@ class Scenario:
     name: str
     mechanism: str
     signal_strength: float | None = None
+    labeler_features: str = "all"
+    """``"all"`` labeler features, or ``"signal_only"`` (no covariates; lets E2 reach rho = 0)."""
 
     def __post_init__(self) -> None:
+        if self.labeler_features not in ("all", "signal_only"):
+            raise ValueError(
+                f"scenario {self.name!r}: labeler_features must be 'all' or 'signal_only', "
+                f"got {self.labeler_features!r}"
+            )
         if self.mechanism not in schema.MECHANISMS:
             raise ValueError(
                 f"scenario {self.name!r}: mechanism must be one of {schema.MECHANISMS}, "
@@ -273,6 +282,8 @@ class PreparedScenario:
     train_idx: NDArray[np.int64]
     pool: NDArray[np.int64]
     truth: float
+    model_corr: float = float("nan")
+    """Correlation over the pool between predicted and true per-customer NPS values."""
 
 
 def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
@@ -285,7 +296,9 @@ def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
     table = simulate_population(sim_cfg, np.random.default_rng(cfg.seed)).table
     n_total = table.num_rows
 
-    x, _ = design_matrix(table)
+    x, names = design_matrix(table)
+    if scenario.labeler_features == "signal_only":
+        x = x[:, [names.index("signal")]]
     scores = np.asarray(table.column("score").to_numpy(), dtype=np.int64)
     train_mechanism = cfg.labeler.train_mechanism
     if train_mechanism == "scenario":
@@ -313,7 +326,17 @@ def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
         train_idx=train_idx,
         pool=pool,
         truth=float(value[pool].mean()),
+        model_corr=model_correlation(p_all[pool], scores[pool]),
     )
+
+
+def model_correlation(p: NDArray[np.float64], scores: NDArray[np.int64]) -> float:
+    """corr(h, v) with h = 100 (P(promoter) - P(detractor)) and v the true NPS value."""
+    h = p @ np.array([100.0, -100.0])
+    v = 100.0 * ((scores >= 9).astype(np.float64) - (scores <= 6).astype(np.float64))
+    if h.std() == 0 or v.std() == 0:
+        return float("nan")
+    return float(np.corrcoef(h, v)[0, 1])
 
 
 def run_replicate(
@@ -364,6 +387,7 @@ def run_replicate(
                 "covered": bool(est.lower <= prep.truth <= est.upper),
                 "lambda_hat": float(est.diagnostics.get("lambda_hat", math.nan)),
                 "effective_n": float(est.diagnostics.get("effective_n", math.nan)),
+                "model_corr": prep.model_corr,
             }
         )
     return rows
@@ -378,11 +402,21 @@ def _run_chunk(
     return out
 
 
-def run_grid(cfg: GridConfig, *, chunk_size: int = 25) -> pl.DataFrame:
-    """Run the full grid and return one row per (scenario, n, replicate, estimator)."""
+def run_grid(
+    cfg: GridConfig,
+    *,
+    chunk_size: int = 25,
+    prepare: Callable[[GridConfig, int], PreparedScenario] | None = None,
+) -> pl.DataFrame:
+    """Run the full grid and return one row per (scenario, n, replicate, estimator).
+
+    ``prepare`` builds each scenario (default :func:`prepare_scenario`, the simulator).
+    Other datasets pass their own, e.g. E6 for CFPB.
+    """
+    build = prepare_scenario if prepare is None else prepare
     rows: list[dict[str, Any]] = []
     for s_idx in range(len(cfg.scenarios)):
-        prep = prepare_scenario(cfg, s_idx)
+        prep = build(cfg, s_idx)
         tasks = [
             (n, range(start, min(start + chunk_size, cfg.replicates)))
             for n in cfg.n_labeled
