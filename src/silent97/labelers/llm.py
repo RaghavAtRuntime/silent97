@@ -1,37 +1,42 @@
-"""LLM labeler: zero-shot probabilities for detractor / passive / promoter.
+"""Local LLM labeler: zero-shot probabilities for detractor / passive / promoter.
 
-Each item (a public CFPB complaint or a synthetic text) is sent once to the Claude
-API with fixed instructions. The response is constrained to a JSON schema
-``{"detractor", "passive", "promoter"}`` with structured outputs. Probabilities are
-validated and renormalized, and the predictor returns ``[P(promoter), P(detractor)]``.
+A small open-weight instruction model (default ``Qwen/Qwen2.5-0.5B-Instruct``,
+Apache-2.0) runs locally on CPU through Hugging Face ``transformers``. Nothing is
+sent to any external API, and there is no spend.
 
-Rules (CLAUDE.md, Phase 3):
+How probabilities are produced. Each item gets one forward pass, with no
+generation. The chat-formatted prompt asks for a single letter, A (detractor),
+B (passive) or C (promoter). The model's next-token probabilities for the three
+letter tokens are renormalized to sum to 1:
 
-- **Dry run by default.** :func:`label_items` makes no call unless
-  ``dry_run=False``. Every run first prints the item count and the projected cost.
-- **Hard caps.** ``max_items`` and ``max_spend_usd`` are cumulative over all runs
-  that share a cache, using the cache's ``ledger.jsonl``. ``max_spend_usd: null``
-  refuses any call, and the committed config ships that way so a human must set
-  the cap. Before every request (sync) or batch (batch mode), the run reserves the
-  *worst case* (estimated input plus ``max_tokens`` of output). Actual spend can
-  therefore not pass the cap, as long as the input estimate (characters / 3.5,
-  which overestimates English token counts) holds.
-- **Never re-call a cached key.** Keys hash (model, prompt version, input), where
-  the prompt version covers the instructions, schema and effort. Failed or
-  refused items are cached too.
-- **Only public CFPB or synthetic text** may be sent; any other ``source`` raises.
-- **Credentials** come from ``.env`` (``ANTHROPIC_API_KEY``) or the environment
-  and are never printed. The client always targets ``base_url`` from config
-  (default ``https://api.anthropic.com``), never an inherited ``ANTHROPIC_BASE_URL``.
+.. math::
 
-Model and effort come from config (default ``claude-opus-5-5`` at ``low`` effort,
-for a classification task). Sync mode opts into server-side refusal fallbacks
-(``fallbacks="default"``). Batch mode cannot, because the Batches API rejects the
-parameter; there a refusal is a failed item.
+    \\hat p_k = \\frac{\\exp(\\ell_k)}{\\sum_{j \\in \\{A,B,C\\}} \\exp(\\ell_j)}.
 
-Statistical note: a cached response is a fixed function of the item, so PPI's
-validity argument applies. A failed item gets the constant prediction
-(1/3, 1/3, 1/3), also a fixed function of the item. Failures are counted and reported.
+This is the standard zero-shot classification readout, and it is deterministic.
+Very small models are unreliable at writing calibrated numbers as JSON, so this
+replaces the "JSON probabilities" readout planned for an API model. The labeler
+returns ``[P(promoter), P(detractor)]``.
+
+Rules (CLAUDE.md, Phase 3, adapted to a local model):
+
+- **Dry run by default:** :func:`label_items` scores nothing unless
+  ``dry_run=False``. Every run first prints the item count and the projected
+  compute (prompt tokens and seconds).
+- **Hard item cap:** ``max_items``, cumulative over all runs sharing a cache (from
+  the cache's ``ledger.jsonl``). Spend is zero by construction.
+- **Never recompute a cached key:** keys hash (model@revision, prompt version,
+  input text). The prompt version covers the instructions, the option letters and
+  the truncation length. Invalid outputs are cached too.
+- **Only public CFPB or synthetic text** is accepted (``source``), even though
+  nothing leaves the machine.
+- **Bounded input:** prompts longer than ``max_input_tokens`` tokens have the item
+  text truncated from the end. Truncations are counted.
+
+Statistical note: a cached score is a fixed function of the item, so PPI's validity
+argument applies. An invalid output (non-finite, or not summing to 1) gets the
+constant (1/3, 1/3, 1/3), which is also a fixed function of the item. PPI does not
+need the model to be calibrated; miscalibration costs width only.
 """
 
 from __future__ import annotations
@@ -39,13 +44,11 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
-import math
-import os
 import time
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Final, Literal
+from typing import Any, Final
 
 import numpy as np
 import yaml
@@ -56,65 +59,47 @@ from silent97.labelers.cache import DiskCache, make_key
 
 __all__ = [
     "ALLOWED_SOURCES",
-    "RESPONSE_SCHEMA",
+    "OPTION_LETTERS",
     "SYSTEM_PROMPT",
     "CapError",
-    "CredentialsError",
     "LLMConfig",
     "LLMItem",
     "LabelResult",
     "RunPlan",
-    "SpendCapReached",
+    "Scorer",
+    "check_probabilities",
     "label_items",
-    "load_api_key",
     "load_config",
-    "make_client",
-    "parse_probabilities",
     "plan_run",
     "render_cfpb_item",
+    "transformers_scorer",
 ]
 
-PROMPT_VERSION: Final = "nps-zero-shot-v1"
+PROMPT_VERSION: Final = "nps-local-choice-v1"
 ALLOWED_SOURCES: Final = frozenset({"cfpb", "synthetic"})
-FALLBACK_BETA: Final = "server-side-fallback-2026-07-01"
+OPTION_LETTERS: Final = ("A", "B", "C")
+"""Answer letters for (detractor, passive, promoter), in class order."""
 FAILED_PROBS: Final = (1 / 3, 1 / 3, 1 / 3)
 _SUM_TOLERANCE: Final = 0.1
 
 SYSTEM_PROMPT: Final = (
-    "You read a consumer's complaint about a financial company and estimate how the "
-    "consumer feels about the company, in the three Net Promoter Score groups:\n"
-    "- detractor: clearly dissatisfied; likely to keep fighting the company's response "
-    "or to warn others away;\n"
-    "- passive: neither strongly negative nor positive; likely to accept a reasonable "
-    "resolution;\n"
-    "- promoter: satisfied overall and likely to recommend the company.\n"
+    "You read a consumer's complaint about a financial company and judge how the "
+    "consumer feels about the company. Choose one group:\n"
+    "A) detractor: clearly dissatisfied; likely to keep fighting the company's "
+    "response or to warn others away.\n"
+    "B) passive: neither strongly negative nor positive; likely to accept a "
+    "reasonable resolution.\n"
+    "C) promoter: satisfied overall and likely to recommend the company.\n"
     "Judge only from the complaint text, the product, the issue and the state given. "
-    "Give calibrated probabilities that sum to 1: if the text gives little signal, "
-    "stay close to what is typical for complaints. Respond with the JSON object only."
+    "Answer with the single letter A, B or C."
 )
 
-RESPONSE_SCHEMA: Final = {
-    "type": "object",
-    "properties": {
-        "detractor": {"type": "number"},
-        "passive": {"type": "number"},
-        "promoter": {"type": "number"},
-    },
-    "required": ["detractor", "passive", "promoter"],
-    "additionalProperties": False,
-}
+Scorer = Callable[[list[str]], Any]
+"""Maps item texts to class probabilities, shape (n, 3) in (detractor, passive, promoter)."""
 
 
 class CapError(RuntimeError):
-    """A configured cap (items or spend) forbids starting this run."""
-
-
-class SpendCapReached(RuntimeError):
-    """The run stopped because the next request could exceed the spend cap."""
-
-
-class CredentialsError(RuntimeError):
-    """No API key was found (the message never contains a secret)."""
+    """The configured item cap forbids starting this run."""
 
 
 # --------------------------------------------------------------------------- config
@@ -122,47 +107,35 @@ class CredentialsError(RuntimeError):
 
 @dataclass(frozen=True)
 class LLMConfig:
-    """LLM labeling settings; see ``configs/llm.yaml``."""
+    """Local LLM labeling settings; see ``configs/llm.yaml``."""
 
-    model: str = "claude-opus-5-5"
-    effort: str = "low"
-    max_tokens: int = 2048
-    mode: Literal["batch", "sync"] = "batch"
-    max_items: int = 0
-    max_spend_usd: float | None = None
-    price_input_per_mtok: float = 4.0
-    price_output_per_mtok: float = 20.0
-    batch_discount: float = 0.5
-    expected_output_tokens: int = 150
+    model: str = "Qwen/Qwen2.5-0.5B-Instruct"
+    revision: str | None = None
+    max_items: int = 10_000
+    max_input_tokens: int = 512
+    batch_size: int = 8
+    device: str = "cpu"
+    dtype: str = "float32"
+    threads: int | None = None
+    tokens_per_second: float = 450.0
     chars_per_token: float = 3.5
-    base_url: str = "https://api.anthropic.com"
-    batch_size: int = 2000
-    poll_seconds: float = 60.0
-    sdk_max_retries: int = 4
 
     def __post_init__(self) -> None:
-        if self.mode not in ("batch", "sync"):
-            raise ValueError(f"mode must be 'batch' or 'sync', got {self.mode!r}")
-        if self.max_items < 0 or self.batch_size < 1 or self.max_tokens < 16:
-            raise ValueError("max_items >= 0, batch_size >= 1 and max_tokens >= 16 are required")
-        if self.max_spend_usd is not None and not self.max_spend_usd >= 0:
-            raise ValueError(f"max_spend_usd must be null or >= 0, got {self.max_spend_usd}")
-        if not 0 < self.batch_discount <= 1:
-            raise ValueError(f"batch_discount must lie in (0, 1], got {self.batch_discount}")
+        if self.max_items < 0 or self.batch_size < 1 or self.max_input_tokens < 16:
+            raise ValueError("max_items >= 0, batch_size >= 1 and max_input_tokens >= 16 required")
+        if self.tokens_per_second <= 0 or self.chars_per_token <= 0:
+            raise ValueError("tokens_per_second and chars_per_token must be positive")
+
+    @property
+    def model_id(self) -> str:
+        """Model name plus pinned revision, hashed into every cache key."""
+        return f"{self.model}@{self.revision or 'main'}"
 
     @property
     def prompt_version(self) -> str:
-        """Version tag hashed into every cache key (instructions, schema, effort)."""
-        spec = json.dumps([SYSTEM_PROMPT, RESPONSE_SCHEMA, self.effort], sort_keys=True)
+        """Version tag hashed into every cache key (instructions, options, truncation)."""
+        spec = json.dumps([SYSTEM_PROMPT, OPTION_LETTERS, self.max_input_tokens])
         return f"{PROMPT_VERSION}:{hashlib.sha256(spec.encode()).hexdigest()[:12]}"
-
-    def price_factor(self) -> float:
-        return self.batch_discount if self.mode == "batch" else 1.0
-
-    def cost(self, input_tokens: float, output_tokens: float) -> float:
-        """USD for the given token counts under this config's mode."""
-        raw = input_tokens * self.price_input_per_mtok + output_tokens * self.price_output_per_mtok
-        return raw / 1e6 * self.price_factor()
 
 
 def load_config(path: str | Path) -> LLMConfig:
@@ -198,143 +171,86 @@ def render_cfpb_item(
     return LLMItem(item_id=str(complaint_id), source="cfpb", text=text)
 
 
+def _check_sources(items: Iterable[LLMItem]) -> None:
+    bad = sorted({it.source for it in items} - ALLOWED_SOURCES)
+    if bad:
+        raise ValueError(f"item source(s) {bad} not allowed; only {sorted(ALLOWED_SOURCES)}")
+
+
 # --------------------------------------------------------------------------- planning
 
 
 @dataclass(frozen=True)
 class RunPlan:
-    """What a run would do, before any call."""
+    """What a run would do, before any scoring."""
 
     n_items: int
     n_cached: int
-    n_to_call: int
-    projected_input_tokens: float
-    projected_output_tokens: float
-    projected_cost_usd: float
-    worst_case_cost_usd: float
-    spent_before_usd: float
-    called_before: int
+    n_to_score: int
+    projected_tokens: float
+    projected_seconds: float
+    scored_before: int
 
     def describe(self, cfg: LLMConfig) -> str:
-        cap = (
-            "NOT SET (no call allowed)"
-            if cfg.max_spend_usd is None
-            else f"${cfg.max_spend_usd:.2f}"
-        )
+        hours = self.projected_seconds / 3600
         return (
-            f"LLM labeling plan: model {cfg.model}, effort {cfg.effort}, mode {cfg.mode}\n"
-            f"  items: {self.n_items} total, {self.n_cached} cached, {self.n_to_call} to call\n"
-            f"  projected: {self.projected_input_tokens:,.0f} input + "
-            f"{self.projected_output_tokens:,.0f} output tokens = ${self.projected_cost_usd:.2f} "
-            f"(worst case ${self.worst_case_cost_usd:.2f} if every response used max_tokens)\n"
-            f"  already spent from this cache: ${self.spent_before_usd:.2f} on "
-            f"{self.called_before} items; spend cap {cap}; item cap {cfg.max_items}"
+            f"local LLM labeling plan: model {cfg.model_id} on {cfg.device}\n"
+            f"  items: {self.n_items} total, {self.n_cached} cached, {self.n_to_score} to score\n"
+            f"  projected: about {self.projected_tokens:,.0f} prompt tokens, "
+            f"{self.projected_seconds:,.0f} s ({hours:.1f} h) at "
+            f"{cfg.tokens_per_second:.0f} tokens/s; spend $0 (local)\n"
+            f"  item cap {cfg.max_items}; already scored from this cache: {self.scored_before}"
         )
 
 
 def _keys(items: Sequence[LLMItem], cfg: LLMConfig) -> list[str]:
     return [
-        make_key(model=cfg.model, prompt_version=cfg.prompt_version, payload=it.text)
+        make_key(model=cfg.model_id, prompt_version=cfg.prompt_version, payload=it.text)
         for it in items
     ]
 
 
-def _input_tokens(item: LLMItem, cfg: LLMConfig) -> float:
-    return (len(SYSTEM_PROMPT) + len(item.text)) / cfg.chars_per_token
-
-
-def _ledger(cache: DiskCache) -> list[dict[str, Any]]:
+def _ledger_count(cache: DiskCache) -> int:
     path = cache.root / "ledger.jsonl"
     if not path.exists():
-        return []
-    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
-
-
-def _append_ledger(cache: DiskCache, entry: dict[str, Any]) -> None:
-    cache.root.mkdir(parents=True, exist_ok=True)
-    with open(cache.root / "ledger.jsonl", "a", encoding="utf-8") as fh:
-        fh.write(json.dumps(entry, sort_keys=True) + "\n")
+        return 0
+    return sum(1 for line in path.read_text().splitlines() if line.strip())
 
 
 def plan_run(items: Sequence[LLMItem], cfg: LLMConfig, cache: DiskCache) -> RunPlan:
-    """Count cached items and project the cost of the rest (no API call)."""
+    """Count cached items and project the compute for the rest (nothing is scored)."""
     keys = _keys(items, cfg)
-    todo = [it for it, k in zip(items, keys, strict=True) if k not in cache]
-    tin = sum(_input_tokens(it, cfg) for it in todo)
-    tout = float(cfg.expected_output_tokens * len(todo))
-    ledger = _ledger(cache)
+    todo = {k: it for k, it in zip(keys, items, strict=True) if k not in cache}
+    tokens = sum(
+        min((len(SYSTEM_PROMPT) + len(it.text)) / cfg.chars_per_token, cfg.max_input_tokens)
+        for it in todo.values()
+    )
     return RunPlan(
         n_items=len(items),
-        n_cached=len(items) - len(todo),
-        n_to_call=len(todo),
-        projected_input_tokens=tin,
-        projected_output_tokens=tout,
-        projected_cost_usd=cfg.cost(tin, tout),
-        worst_case_cost_usd=cfg.cost(tin, float(cfg.max_tokens * len(todo))),
-        spent_before_usd=float(sum(e["cost_usd"] for e in ledger)),
-        called_before=len(ledger),
+        n_cached=len(items) - sum(1 for k in keys if k in todo),
+        n_to_score=len(todo),
+        projected_tokens=float(tokens),
+        projected_seconds=float(tokens / cfg.tokens_per_second),
+        scored_before=_ledger_count(cache),
     )
 
 
-# --------------------------------------------------------------------------- responses
+# --------------------------------------------------------------------------- scoring
 
 
-def parse_probabilities(text: str) -> tuple[NDArray[np.float64], bool]:
-    """Parse ``{"detractor", "passive", "promoter"}`` into class probabilities.
+def check_probabilities(raw: NDArray[np.float64]) -> tuple[NDArray[np.float64], bool]:
+    """Validate (detractor, passive, promoter) probabilities and renormalize.
 
-    Returns ``(probs, ok)`` with probs ordered (detractor, passive, promoter). Values
-    must be finite and in [0, 1] and sum to 1 within 0.1; they are then renormalized.
-    Anything else returns the constant (1/3, 1/3, 1/3) with ``ok=False``.
+    Values must be finite and in [0, 1] and sum to 1 within 0.1. Otherwise the
+    constant (1/3, 1/3, 1/3) is returned with ``ok=False``.
     """
-    try:
-        data = json.loads(text)
-        raw = np.array([float(data[k]) for k in ("detractor", "passive", "promoter")])
-    except (ValueError, TypeError, KeyError):
+    p = np.asarray(raw, dtype=np.float64)
+    total = float(p.sum()) if p.shape == (3,) else float("nan")
+    if not np.isfinite(p).all() or p.shape != (3,) or p.min() < 0 or p.max() > 1:
         return np.array(FAILED_PROBS), False
-    total = raw.sum()
-    if (
-        not np.isfinite(raw).all()
-        or raw.min() < 0
-        or raw.max() > 1
-        or abs(total - 1) > _SUM_TOLERANCE
-    ):
+    if abs(total - 1.0) > _SUM_TOLERANCE:
         return np.array(FAILED_PROBS), False
-    return raw / total, True
-
-
-def _record(message: Any, cfg: LLMConfig) -> dict[str, Any]:
-    text = next((b.text for b in message.content if getattr(b, "type", "") == "text"), "")
-    if message.stop_reason in ("refusal", "max_tokens"):
-        probs, ok = np.array(FAILED_PROBS), False
-    else:
-        probs, ok = parse_probabilities(text)
-    tin, tout = int(message.usage.input_tokens), int(message.usage.output_tokens)
-    return {
-        "probs": probs.tolist(),
-        "ok": bool(ok),
-        "stop_reason": str(message.stop_reason),
-        "served_model": str(getattr(message, "model", cfg.model)),
-        "input_tokens": tin,
-        "output_tokens": tout,
-        "cost_usd": cfg.cost(tin, tout),
-        "prompt_version": cfg.prompt_version,
-    }
-
-
-def _params(item: LLMItem, cfg: LLMConfig) -> dict[str, Any]:
-    return {
-        "model": cfg.model,
-        "max_tokens": cfg.max_tokens,
-        "system": SYSTEM_PROMPT,
-        "messages": [{"role": "user", "content": item.text}],
-        "output_config": {
-            "effort": cfg.effort,
-            "format": {"type": "json_schema", "schema": RESPONSE_SCHEMA},
-        },
-    }
-
-
-# --------------------------------------------------------------------------- running
+    return p / total, True
 
 
 @dataclass(frozen=True)
@@ -344,34 +260,9 @@ class LabelResult:
     plan: RunPlan
     predictions: NDArray[np.float64] | None
     class_probs: NDArray[np.float64] | None
-    n_called: int
+    n_scored: int
     n_failed: int
-    spent_usd: float
-
-
-def _check_sources(items: Iterable[LLMItem]) -> None:
-    bad = sorted({it.source for it in items} - ALLOWED_SOURCES)
-    if bad:
-        raise ValueError(
-            f"item source(s) {bad} not allowed; only {sorted(ALLOWED_SOURCES)} may be sent"
-        )
-
-
-def _check_caps(plan: RunPlan, cfg: LLMConfig) -> None:
-    if plan.n_to_call == 0:
-        return
-    if cfg.max_spend_usd is None:
-        raise CapError("max_spend_usd is not set; a human must set a spend cap before any call")
-    if plan.called_before + plan.n_to_call > cfg.max_items:
-        raise CapError(
-            f"{plan.n_to_call} new items (+{plan.called_before} already called) exceeds "
-            f"max_items = {cfg.max_items}"
-        )
-    if plan.spent_before_usd + plan.projected_cost_usd > cfg.max_spend_usd:
-        raise CapError(
-            f"projected spend ${plan.projected_cost_usd:.2f} (+${plan.spent_before_usd:.2f} "
-            f"already spent) exceeds max_spend_usd = ${cfg.max_spend_usd:.2f}"
-        )
+    seconds: float
 
 
 def label_items(
@@ -379,12 +270,11 @@ def label_items(
     cfg: LLMConfig,
     *,
     cache: DiskCache,
-    client: Any = None,
+    scorer: Scorer | None = None,
     dry_run: bool = True,
     log: Callable[[str], None] = print,
-    sleep: Callable[[float], None] = time.sleep,
 ) -> LabelResult:
-    """Label ``items`` (cache first), respecting every rule in the module docstring.
+    """Label ``items`` (cache first), following the rules in the module docstring.
 
     Returns predictions ``(len(items), 2)`` = [P(promoter), P(detractor)] and class
     probabilities ``(len(items), 3)`` in (detractor, passive, promoter) order.
@@ -394,118 +284,116 @@ def label_items(
     log(("[dry run] " if dry_run else "") + plan.describe(cfg))
     if dry_run:
         return LabelResult(plan, None, None, 0, 0, 0.0)
-    _check_caps(plan, cfg)
-    cap = (
-        math.inf if cfg.max_spend_usd is None else cfg.max_spend_usd
-    )  # None only if nothing to call
-
+    if plan.n_to_score and plan.scored_before + plan.n_to_score > cfg.max_items:
+        raise CapError(
+            f"{plan.n_to_score} new items (+{plan.scored_before} already scored) exceeds "
+            f"max_items = {cfg.max_items}"
+        )
     keys = _keys(items, cfg)
-    todo = [(k, it) for k, it in zip(keys, items, strict=True) if k not in cache]
-    unique_todo = list(dict(todo).items())
-    spent = plan.spent_before_usd
-    new_spend = 0.0
-    n_called = 0
-    if unique_todo and client is None:
-        raise ValueError("a client is required when dry_run=False and items are uncached")
+    todo = list({k: it for k, it in zip(keys, items, strict=True) if k not in cache}.items())
+    if todo and scorer is None:
+        raise ValueError("a scorer is required when dry_run=False and items are uncached")
 
-    def worst(group: Sequence[tuple[str, LLMItem]]) -> float:
-        tin = sum(_input_tokens(it, cfg) for _, it in group)
-        return cfg.cost(tin, float(cfg.max_tokens * len(group)))
-
-    def store(key: str, item: LLMItem, rec: dict[str, Any]) -> None:
-        nonlocal spent, new_spend, n_called
-        cache.put(key, {**rec, "item_id": item.item_id, "source": item.source})
-        _append_ledger(
-            cache,
-            {"key": key, "item_id": item.item_id, "cost_usd": rec["cost_usd"], "ok": rec["ok"],
-             "input_tokens": rec["input_tokens"], "output_tokens": rec["output_tokens"]},
-        )  # fmt: skip
-        spent += rec["cost_usd"]
-        new_spend += rec["cost_usd"]
-        n_called += 1
-
-    if cfg.mode == "sync":
-        for key, item in unique_todo:
-            if spent + worst([(key, item)]) > cap:
-                raise SpendCapReached(
-                    f"stopped after {n_called} calls: the next could exceed ${cap:.2f} "
-                    f"(spent ${spent:.2f})"
-                )
-            message = client.beta.messages.create(
-                **_params(item, cfg), betas=[FALLBACK_BETA], fallbacks="default"
+    start = time.perf_counter()
+    for b in range(0, len(todo), cfg.batch_size):
+        batch = todo[b : b + cfg.batch_size]
+        assert scorer is not None
+        raw = np.asarray(scorer([it.text for _, it in batch]), dtype=np.float64)
+        if raw.shape != (len(batch), 3):
+            raise ValueError(f"scorer returned shape {raw.shape}, expected ({len(batch)}, 3)")
+        for (key, item), row in zip(batch, raw, strict=True):
+            probs, ok = check_probabilities(row)
+            cache.put(
+                key,
+                {
+                    "probs": probs.tolist(),
+                    "ok": ok,
+                    "model": cfg.model_id,
+                    "prompt_version": cfg.prompt_version,
+                    "item_id": item.item_id,
+                    "source": item.source,
+                },
             )
-            store(key, item, _record(message, cfg))
-    else:
-        for start in range(0, len(unique_todo), cfg.batch_size):
-            chunk = unique_todo[start : start + cfg.batch_size]
-            if spent + worst(chunk) > cap:
-                raise SpendCapReached(
-                    f"stopped after {n_called} items: the next batch of {len(chunk)} could "
-                    f"exceed ${cap:.2f} (spent ${spent:.2f})"
-                )
-            by_id = dict(chunk)
-            batch = client.messages.batches.create(
-                requests=[{"custom_id": k, "params": _params(it, cfg)} for k, it in chunk]
-            )
-            log(f"submitted batch {batch.id} ({len(chunk)} items)")
-            while batch.processing_status != "ended":
-                sleep(cfg.poll_seconds)
-                batch = client.messages.batches.retrieve(batch.id)
-            for res in client.messages.batches.results(batch.id):
-                item = by_id[res.custom_id]
-                if res.result.type == "succeeded":
-                    store(res.custom_id, item, _record(res.result.message, cfg))
-                elif (
-                    res.result.type == "errored"
-                    and getattr(getattr(res.result, "error", None), "type", "") == "invalid_request"
-                ):
-                    store(res.custom_id, item, {
-                        "probs": list(FAILED_PROBS), "ok": False, "stop_reason": "invalid_request",
-                        "served_model": cfg.model, "input_tokens": 0, "output_tokens": 0,
-                        "cost_usd": 0.0, "prompt_version": cfg.prompt_version,
-                    })  # fmt: skip
-                # server errors, cancellations and expiries stay uncached for a later run
+            cache.root.mkdir(parents=True, exist_ok=True)
+            with open(cache.root / "ledger.jsonl", "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"key": key, "item_id": item.item_id, "ok": ok}) + "\n")
+        done = min(b + cfg.batch_size, len(todo))
+        if done % max(cfg.batch_size * 50, 1) < cfg.batch_size or done == len(todo):
+            log(f"scored {done}/{len(todo)} items in {time.perf_counter() - start:.0f} s")
+    seconds = time.perf_counter() - start
 
     class_probs = np.empty((len(items), 3))
     n_failed = 0
     for i, key in enumerate(keys):
         entry = cache.get(key)
-        if entry is None:  # pragma: no cover - only after a transient batch failure
-            raise RuntimeError(f"item {items[i].item_id} is still unlabeled; rerun to retry it")
+        if entry is None:  # pragma: no cover - defensive
+            raise RuntimeError(f"item {items[i].item_id} is unlabeled")
         class_probs[i] = entry["probs"]
         n_failed += not entry["ok"]
     predictions = np.column_stack([class_probs[:, PROMOTER], class_probs[:, DETRACTOR]])
-    log(f"labeled {len(items)} items: {n_called} new calls, {n_failed} failed")
-    log(f"spent ${new_spend:.4f} this run")
-    return LabelResult(plan, predictions, class_probs, n_called, n_failed, new_spend)
+    log(f"labeled {len(items)} items: {len(todo)} newly scored, {n_failed} invalid")
+    return LabelResult(plan, predictions, class_probs, len(todo), n_failed, seconds)
 
 
-# --------------------------------------------------------------------------- credentials
+def transformers_scorer(cfg: LLMConfig) -> Scorer:
+    """A local ``transformers`` scorer (needs the ``text`` extra and the model weights).
 
+    Prompts are rendered with the model's chat template (system + user + generation
+    prompt) and left-padded, so the last position of every row is its own next-token
+    position. The item text is truncated so the full prompt fits ``max_input_tokens``.
+    """
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-def load_api_key(env_file: str | Path = ".env") -> str:
-    """``ANTHROPIC_API_KEY`` from ``env_file`` (git-ignored), else from the environment."""
-    path = Path(env_file)
-    if path.exists():
-        for line in path.read_text().splitlines():
-            line = line.strip()
-            if line.startswith("#") or "=" not in line:
-                continue
-            name, _, value = line.partition("=")
-            if name.strip() == "ANTHROPIC_API_KEY" and value.strip():
-                return value.strip().strip("'\"")
-    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if key:
-        return key
-    raise CredentialsError(
-        f"no ANTHROPIC_API_KEY in {path} or in the environment; add it to .env (git-ignored)"
+    if cfg.threads:
+        torch.set_num_threads(cfg.threads)
+    tok: Any = AutoTokenizer.from_pretrained(cfg.model, revision=cfg.revision)
+    tok.padding_side = "left"
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
+    model: Any = AutoModelForCausalLM.from_pretrained(
+        cfg.model, revision=cfg.revision, dtype=getattr(torch, cfg.dtype)
     )
+    model = model.to(cfg.device)
+    model.eval()
+    option_ids = []
+    for letter in OPTION_LETTERS:
+        ids = tok.encode(letter, add_special_tokens=False)
+        if len(ids) != 1:
+            raise ValueError(f"option {letter!r} is not a single token for {cfg.model}: {ids}")
+        option_ids.append(ids[0])
 
+    def render(text: str) -> str:
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": text},
+        ]
+        out: str = tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        return out
 
-def make_client(cfg: LLMConfig, *, env_file: str | Path = ".env") -> Any:
-    """An ``anthropic.Anthropic`` client pinned to ``cfg.base_url`` (needs the ``llm`` extra)."""
-    import anthropic
+    overhead = len(tok(render(""), add_special_tokens=False)["input_ids"])
+    budget = max(cfg.max_input_tokens - overhead, 8)
 
-    return anthropic.Anthropic(
-        api_key=load_api_key(env_file), base_url=cfg.base_url, max_retries=cfg.sdk_max_retries
-    )
+    def score(texts: list[str]) -> NDArray[np.float64]:
+        truncated = 0
+        prompts = []
+        for text in texts:
+            ids = tok(text, add_special_tokens=False)["input_ids"]
+            if len(ids) > budget:
+                text = tok.decode(ids[:budget])
+                truncated += 1
+            prompts.append(render(text))
+        enc = tok(prompts, return_tensors="pt", padding=True, add_special_tokens=False).to(
+            cfg.device
+        )
+        with torch.inference_mode():
+            # Only the last position's logits are needed; skipping the vocabulary
+            # projection elsewhere saves time and about 2 GB per batch for a 150k vocab.
+            logits = model(**enc, logits_to_keep=1).logits[:, -1, :]
+        picked = logits[:, option_ids].double()
+        probs = torch.softmax(picked, dim=-1).cpu().numpy()
+        score.last_truncated = truncated  # type: ignore[attr-defined]
+        return np.asarray(probs, dtype=np.float64)
+
+    score.last_truncated = 0  # type: ignore[attr-defined]
+    return score

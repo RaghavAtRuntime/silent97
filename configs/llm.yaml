@@ -1,18 +1,13 @@
-# LLM labeler settings (src/silent97/labelers/llm.py).
-# max_spend_usd is deliberately null: no API call is possible until a human sets a
-# cap here. Prices are USD per million tokens for the chosen model; keep them in
-# sync with the model (Opus 5.5: 4 / 20, Sonnet 5.5: 2 / 10, Haiku 5.5: 0.10 / 0.50).
-model: claude-opus-5-5
-effort: low
-max_tokens: 2048
-mode: batch            # Batches API: half price; sync mode is for small runs
-max_items: 10000
-max_spend_usd: null
-price_input_per_mtok: 4.0
-price_output_per_mtok: 20.0
-batch_discount: 0.5
-expected_output_tokens: 150
+# Local LLM labeler settings (src/silent97/labelers/llm.py). Runs on CPU through
+# Hugging Face transformers; nothing is sent to an external API and there is no
+# spend. The weights download once from huggingface.co (needs network access).
+model: Qwen/Qwen2.5-0.5B-Instruct   # Apache-2.0, 0.5B parameters
+revision: null                      # pin a commit hash for byte-for-byte reproducibility
+max_items: 10000                    # cumulative cap on items scored from this cache
+max_input_tokens: 512               # longer prompts have the complaint text truncated
+batch_size: 8
+device: cpu
+dtype: float32
+threads: null                       # torch default
+tokens_per_second: 450              # dry-run projection; measured for this architecture on 4 CPU cores
 chars_per_token: 3.5
-base_url: https://api.anthropic.com
-batch_size: 2000
-poll_seconds: 60

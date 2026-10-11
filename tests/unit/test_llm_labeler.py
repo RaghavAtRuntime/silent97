@@ -1,8 +1,12 @@
-"""Tests for the LLM labeler. A fake client stands in for the API: no real calls."""
+"""Tests for the local LLM labeler.
 
-import json
+The labeling logic (dry run, caps, cache, sources, failures) is tested with a stub
+scorer. The real ``transformers`` scorer is tested end to end on a tiny randomly
+initialized model with a locally trained tokenizer, so no download is needed; those
+tests need the optional ``text`` extra (PyTorch) and are skipped without it.
+"""
+
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -14,6 +18,8 @@ from silent97.labelers.cache import DiskCache
 
 
 def _items(n: int, source: str = "cfpb") -> list[llm.LLMItem]:
+    if source != "cfpb":
+        return [llm.LLMItem(item_id=str(i), source=source, text=f"text {i}") for i in range(n)]
     return [
         llm.render_cfpb_item(
             complaint_id=str(i),
@@ -22,165 +28,71 @@ def _items(n: int, source: str = "cfpb") -> list[llm.LLMItem]:
             issue="Billing disputes",
             state="CA",
         )
-        if source == "cfpb"
-        else llm.LLMItem(item_id=str(i), source=source, text=f"synthetic text {i}")
         for i in range(n)
     ]
 
 
 def _cfg(**overrides: Any) -> llm.LLMConfig:
-    base = {
-        "model": "claude-opus-5-5",
-        "max_items": 100,
-        "max_spend_usd": 5.0,
-        "mode": "sync",
-        "price_input_per_mtok": 4.0,
-        "price_output_per_mtok": 20.0,
-    }
-    return llm.LLMConfig(**{**base, **overrides})
+    return llm.LLMConfig(**{"model": "stub/model", "max_items": 100, **overrides})
 
 
-def _message(text: str, *, stop: str = "end_turn", inp: int = 600, out: int = 120) -> Any:
-    return SimpleNamespace(
-        content=[
-            SimpleNamespace(type="thinking", thinking=""),
-            SimpleNamespace(type="text", text=text),
-        ],
-        stop_reason=stop,
-        model="claude-opus-5-5",
-        usage=SimpleNamespace(input_tokens=inp, output_tokens=out),
-    )
+class StubScorer:
+    """Returns fixed class probabilities (detractor, passive, promoter)."""
+
+    def __init__(self, probs: tuple[float, float, float] = (0.6, 0.3, 0.1)) -> None:
+        self.probs = np.array(probs, dtype=float)
+        self.calls: list[list[str]] = []
+
+    def __call__(self, texts: list[str]) -> np.ndarray:
+        self.calls.append(list(texts))
+        return np.tile(self.probs, (len(texts), 1))
+
+    @property
+    def n_scored(self) -> int:
+        return sum(len(c) for c in self.calls)
 
 
-GOOD = json.dumps({"detractor": 0.6, "passive": 0.3, "promoter": 0.1})
+# --------------------------------------------------------------------------- planning
 
 
-class FakeClient:
-    """Records calls; answers every sync request with ``reply`` and batches in kind."""
-
-    def __init__(self, reply: str = GOOD, **message_kw: Any) -> None:
-        self.reply = reply
-        self.message_kw = message_kw
-        self.sync_calls: list[dict[str, Any]] = []
-        self.batches_created: list[list[dict[str, Any]]] = []
-        self.beta = SimpleNamespace(messages=SimpleNamespace(create=self._create))
-        self.messages = SimpleNamespace(
-            create=self._create,
-            batches=SimpleNamespace(
-                create=self._batch_create,
-                retrieve=self._batch_retrieve,
-                results=self._batch_results,
-            ),
-        )
-
-    def _create(self, **kwargs: Any) -> Any:
-        self.sync_calls.append(kwargs)
-        return _message(self.reply, **self.message_kw)
-
-    def _batch_create(self, *, requests: list[dict[str, Any]]) -> Any:
-        self.batches_created.append(requests)
-        return SimpleNamespace(
-            id=f"batch_{len(self.batches_created)}", processing_status="in_progress"
-        )
-
-    def _batch_retrieve(self, batch_id: str) -> Any:
-        return SimpleNamespace(id=batch_id, processing_status="ended")
-
-    def _batch_results(self, batch_id: str) -> Any:
-        requests = self.batches_created[int(batch_id.split("_")[1]) - 1]
-        for r in requests:
-            yield SimpleNamespace(
-                custom_id=r["custom_id"],
-                result=SimpleNamespace(
-                    type="succeeded", message=_message(self.reply, **self.message_kw)
-                ),
-            )
-
-
-# --------------------------------------------------------------------------- dry run and caps
-
-
-def test_dry_run_makes_no_calls_and_prints_plan(tmp_path: Path) -> None:
+def test_dry_run_scores_nothing_and_prints_plan(tmp_path: Path) -> None:
     lines: list[str] = []
+    scorer = StubScorer()
     res = llm.label_items(
-        _items(20), _cfg(), cache=DiskCache(tmp_path), client=None, log=lines.append
+        _items(20), _cfg(), cache=DiskCache(tmp_path), scorer=scorer, log=lines.append
     )
-    assert res.predictions is None
-    assert res.plan.n_items == 20 and res.plan.n_to_call == 20 and res.plan.n_cached == 0
-    assert res.plan.projected_cost_usd > 0
-    text = "\n".join(lines)
-    assert "20" in text and "$" in text and "dry run" in text.lower()
+    assert res.predictions is None and scorer.n_scored == 0
+    assert res.plan.n_items == 20 and res.plan.n_to_score == 20 and res.plan.n_cached == 0
+    text = "\n".join(lines).lower()
+    assert "dry run" in text and "20" in text and "stub/model" in text
 
 
-def test_dry_run_is_default(tmp_path: Path) -> None:
-    client = FakeClient()
-    res = llm.label_items(_items(3), _cfg(), cache=DiskCache(tmp_path), client=client)
-    assert res.predictions is None and client.sync_calls == []
-
-
-def test_projection_formula(tmp_path: Path) -> None:
+def test_projection(tmp_path: Path) -> None:
     items = _items(10)
-    cfg = _cfg(chars_per_token=4.0, expected_output_tokens=100)
+    cfg = _cfg(chars_per_token=4.0, tokens_per_second=100.0)
     plan = llm.plan_run(items, cfg, DiskCache(tmp_path))
-    per_item_in = [(len(llm.SYSTEM_PROMPT) + len(it.text)) / 4.0 for it in items]
-    expected = (sum(per_item_in) * 4.0 + 10 * 100 * 20.0) / 1e6
-    assert plan.projected_cost_usd == pytest.approx(expected)
-    batch = llm.plan_run(
-        items,
-        _cfg(chars_per_token=4.0, expected_output_tokens=100, mode="batch"),
-        DiskCache(tmp_path),
+    tokens = sum(
+        min((len(llm.SYSTEM_PROMPT) + len(it.text)) / 4.0, cfg.max_input_tokens) for it in items
     )
-    assert batch.projected_cost_usd == pytest.approx(expected * 0.5)
-
-
-def test_refuses_without_spend_cap(tmp_path: Path) -> None:
-    with pytest.raises(llm.CapError, match="max_spend_usd"):
-        llm.label_items(
-            _items(3),
-            _cfg(max_spend_usd=None),
-            cache=DiskCache(tmp_path),
-            client=FakeClient(),
-            dry_run=False,
-        )
+    assert plan.projected_tokens == pytest.approx(tokens)
+    assert plan.projected_seconds == pytest.approx(tokens / 100.0)
 
 
 def test_refuses_over_item_cap(tmp_path: Path) -> None:
-    client = FakeClient()
+    scorer = StubScorer()
     with pytest.raises(llm.CapError, match="max_items"):
         llm.label_items(
-            _items(11), _cfg(max_items=10), cache=DiskCache(tmp_path), client=client, dry_run=False
+            _items(11), _cfg(max_items=10), cache=DiskCache(tmp_path), scorer=scorer, dry_run=False
         )
-    assert client.sync_calls == []
+    assert scorer.n_scored == 0
 
 
-def test_refuses_over_projected_spend(tmp_path: Path) -> None:
-    client = FakeClient()
-    with pytest.raises(llm.CapError, match="projected"):
-        llm.label_items(
-            _items(50),
-            _cfg(max_spend_usd=0.01),
-            cache=DiskCache(tmp_path),
-            client=client,
-            dry_run=False,
-        )
-    assert client.sync_calls == []
-
-
-def test_stops_before_actual_spend_could_exceed_cap(tmp_path: Path) -> None:
-    """Responses cost far more than projected. Before each call the run reserves the
-    worst case (estimated input + max_tokens output), so the cap is never exceeded."""
+def test_item_cap_is_cumulative(tmp_path: Path) -> None:
     cache = DiskCache(tmp_path)
-    client = FakeClient(out=1500)  # ~0.032 USD per item, ~6x the projection
-    with pytest.raises(llm.SpendCapReached):
-        llm.label_items(
-            _items(10), _cfg(max_spend_usd=0.1), cache=cache, client=client, dry_run=False
-        )
-    n_done = len(client.sync_calls)
-    assert 1 <= n_done < 10
-    assert llm.plan_run(_items(10), _cfg(), cache).n_cached == n_done
-    ledger = [json.loads(line) for line in (tmp_path / "ledger.jsonl").read_text().splitlines()]
-    assert len(ledger) == n_done
-    assert sum(e["cost_usd"] for e in ledger) <= 0.1
+    llm.label_items(_items(6), _cfg(max_items=10), cache=cache, scorer=StubScorer(), dry_run=False)
+    more = [llm.LLMItem(item_id=f"x{i}", source="cfpb", text=f"new {i}") for i in range(5)]
+    with pytest.raises(llm.CapError, match="max_items"):
+        llm.label_items(more, _cfg(max_items=10), cache=cache, scorer=StubScorer(), dry_run=False)
 
 
 def test_rejects_disallowed_source(tmp_path: Path) -> None:
@@ -193,158 +105,187 @@ def test_synthetic_source_allowed(tmp_path: Path) -> None:
         _items(2, source="synthetic"),
         _cfg(),
         cache=DiskCache(tmp_path),
-        client=FakeClient(),
+        scorer=StubScorer(),
         dry_run=False,
     )
     assert res.predictions is not None
 
 
-# --------------------------------------------------------------------------- calls and cache
+def test_scorer_required_for_real_run(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="scorer"):
+        llm.label_items(_items(2), _cfg(), cache=DiskCache(tmp_path), scorer=None, dry_run=False)
 
 
-def test_sync_run_labels_and_caches(tmp_path: Path) -> None:
+# --------------------------------------------------------------------------- scoring and cache
+
+
+def test_labels_batches_and_caches(tmp_path: Path) -> None:
     cache = DiskCache(tmp_path)
-    client = FakeClient()
-    res = llm.label_items(_items(5), _cfg(), cache=cache, client=client, dry_run=False)
-    assert len(client.sync_calls) == 5
-    assert res.predictions is not None
+    scorer = StubScorer()
+    res = llm.label_items(_items(7), _cfg(batch_size=3), cache=cache, scorer=scorer, dry_run=False)
+    assert [len(c) for c in scorer.calls] == [3, 3, 1]
+    assert res.predictions is not None and res.class_probs is not None
     nps.validate_predictions(res.predictions)
-    np.testing.assert_allclose(res.predictions, [[0.1, 0.6]] * 5)
-    np.testing.assert_allclose(res.class_probs, [[0.6, 0.3, 0.1]] * 5)
-    assert res.spent_usd == pytest.approx(5 * (600 * 4 + 120 * 20) / 1e6)
-    # Second run: every key is cached, so no call is made even with dry_run=False.
-    client2 = FakeClient()
-    res2 = llm.label_items(_items(5), _cfg(), cache=cache, client=client2, dry_run=False)
-    assert client2.sync_calls == [] and res2.spent_usd == 0.0
+    np.testing.assert_allclose(res.predictions, [[0.1, 0.6]] * 7)
+    np.testing.assert_allclose(res.class_probs, [[0.6, 0.3, 0.1]] * 7)
+    assert res.n_scored == 7 and res.n_failed == 0
+    # Second run: everything is cached, nothing is scored again.
+    scorer2 = StubScorer()
+    res2 = llm.label_items(
+        _items(7), _cfg(batch_size=3), cache=cache, scorer=scorer2, dry_run=False
+    )
+    assert scorer2.n_scored == 0 and res2.n_scored == 0
     np.testing.assert_array_equal(res2.predictions, res.predictions)
 
 
-def test_request_shape(tmp_path: Path) -> None:
-    client = FakeClient()
-    llm.label_items(
-        _items(1), _cfg(effort="low"), cache=DiskCache(tmp_path), client=client, dry_run=False
-    )
-    call = client.sync_calls[0]
-    assert call["model"] == "claude-opus-5-5"
-    assert call["system"] == llm.SYSTEM_PROMPT
-    assert call["output_config"]["effort"] == "low"
-    assert call["output_config"]["format"]["type"] == "json_schema"
-    assert call["output_config"]["format"]["schema"] == llm.RESPONSE_SCHEMA
-    content = call["messages"][0]["content"]
-    assert "Credit card" in content and "Billing disputes" in content and "CA" in content
-    assert "disputed" not in content.lower()  # the outcome is never shown
+def test_duplicate_texts_scored_once(tmp_path: Path) -> None:
+    items = _items(3) + _items(3)  # same texts twice
+    scorer = StubScorer()
+    res = llm.label_items(items, _cfg(), cache=DiskCache(tmp_path), scorer=scorer, dry_run=False)
+    assert scorer.n_scored == 3 and res.predictions is not None and len(res.predictions) == 6
+
+
+def test_scorer_sees_the_rendered_text_without_outcome(tmp_path: Path) -> None:
+    scorer = StubScorer()
+    llm.label_items(_items(1), _cfg(), cache=DiskCache(tmp_path), scorer=scorer, dry_run=False)
+    text = scorer.calls[0][0]
+    assert "Credit card" in text and "Billing disputes" in text and "CA" in text
+    assert "disputed" not in text.lower()
 
 
 def test_cache_key_covers_model_prompt_and_input(tmp_path: Path) -> None:
     cache = DiskCache(tmp_path)
-    llm.label_items(_items(2), _cfg(), cache=cache, client=FakeClient(), dry_run=False)
-    assert llm.plan_run(_items(2), _cfg(), cache).n_to_call == 0
-    assert llm.plan_run(_items(2), _cfg(model="claude-haiku-5-5"), cache).n_to_call == 2
-    assert llm.plan_run(_items(2), _cfg(effort="medium"), cache).n_to_call == 2
+    llm.label_items(_items(2), _cfg(), cache=cache, scorer=StubScorer(), dry_run=False)
+    assert llm.plan_run(_items(2), _cfg(), cache).n_to_score == 0
+    assert llm.plan_run(_items(2), _cfg(model="other/model"), cache).n_to_score == 2
+    assert llm.plan_run(_items(2), _cfg(revision="abc123"), cache).n_to_score == 2
+    assert llm.plan_run(_items(2), _cfg(max_input_tokens=128), cache).n_to_score == 2
     edited = _items(2)
     edited[0] = llm.LLMItem(item_id="0", source="cfpb", text=edited[0].text + " Edited.")
-    assert llm.plan_run(edited, _cfg(), cache).n_to_call == 1
+    assert llm.plan_run(edited, _cfg(), cache).n_to_score == 1
 
 
 @pytest.mark.parametrize(
-    "reply, stop",
-    [
-        ("not json", "end_turn"),
-        (json.dumps({"detractor": 2.0, "passive": 0.1, "promoter": 0.1}), "end_turn"),
-        (json.dumps({"detractor": -0.1, "passive": 0.6, "promoter": 0.5}), "end_turn"),
-        (GOOD, "refusal"),
-        (GOOD, "max_tokens"),
-    ],
+    "bad", [(np.nan, 0.5, 0.5), (-0.1, 0.6, 0.5), (0.0, 0.0, 0.0), (0.5, 0.2, 0.1)]
 )
-def test_failures_get_constant_prediction_and_are_cached(
-    tmp_path: Path, reply: str, stop: str
+def test_invalid_scores_become_constant_and_are_cached(
+    tmp_path: Path, bad: tuple[float, float, float]
 ) -> None:
     cache = DiskCache(tmp_path)
-    client = FakeClient(reply=reply, stop=stop)
-    res = llm.label_items(_items(2), _cfg(), cache=cache, client=client, dry_run=False)
+    res = llm.label_items(_items(2), _cfg(), cache=cache, scorer=StubScorer(bad), dry_run=False)
     assert res.n_failed == 2
+    assert res.predictions is not None
     np.testing.assert_allclose(res.predictions, [[1 / 3, 1 / 3]] * 2)
-    # Failures are cached too: never re-called.
-    client2 = FakeClient()
-    llm.label_items(_items(2), _cfg(), cache=cache, client=client2, dry_run=False)
-    assert client2.sync_calls == []
+    scorer2 = StubScorer()
+    llm.label_items(_items(2), _cfg(), cache=cache, scorer=scorer2, dry_run=False)
+    assert scorer2.n_scored == 0
 
 
-def test_probabilities_renormalized() -> None:
-    probs, ok = llm.parse_probabilities(
-        json.dumps({"detractor": 0.5, "passive": 0.26, "promoter": 0.24})
-    )
+def test_check_probabilities() -> None:
+    probs, ok = llm.check_probabilities(np.array([0.5, 0.3, 0.2]))
     assert ok
-    np.testing.assert_allclose(probs, np.array([0.5, 0.26, 0.24]) / 1.0)
-    probs, ok = llm.parse_probabilities(
-        json.dumps({"detractor": 0.55, "passive": 0.3, "promoter": 0.2})
-    )
+    np.testing.assert_allclose(probs, [0.5, 0.3, 0.2])
+    probs, ok = llm.check_probabilities(np.array([0.5, 0.3, 0.25]))
     assert ok and probs.sum() == pytest.approx(1.0)
-
-
-def test_batch_mode(tmp_path: Path) -> None:
-    cache = DiskCache(tmp_path)
-    client = FakeClient()
-    res = llm.label_items(
-        _items(7),
-        _cfg(mode="batch", batch_size=3),
-        cache=cache,
-        client=client,
-        dry_run=False,
-        sleep=lambda s: None,
-    )
-    assert [len(b) for b in client.batches_created] == [3, 3, 1]
-    assert client.sync_calls == []
-    assert res.n_called == 7
-    np.testing.assert_allclose(res.predictions, [[0.1, 0.6]] * 7)
-    assert res.spent_usd == pytest.approx(7 * (600 * 4 + 120 * 20) / 1e6 * 0.5)
-    req = client.batches_created[0][0]
-    assert len(req["custom_id"]) <= 64
-    assert "fallbacks" not in req["params"]  # not accepted by the Batches API
-
-
-def test_sync_mode_uses_server_side_fallback(tmp_path: Path) -> None:
-    client = FakeClient()
-    llm.label_items(_items(1), _cfg(), cache=DiskCache(tmp_path), client=client, dry_run=False)
-    call = client.sync_calls[0]
-    assert call["fallbacks"] == "default"
-    assert call["betas"] == ["server-side-fallback-2026-07-01"]
-
-
-# --------------------------------------------------------------------------- credentials
-
-
-def test_api_key_from_dotenv_and_explicit_base_url(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    env = tmp_path / ".env"
-    env.write_text("# comment\nOTHER=1\nANTHROPIC_API_KEY=sk-test-123\n")
-    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://session-proxy.invalid")
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    assert llm.load_api_key(env) == "sk-test-123"
-    client = llm.make_client(_cfg(), env_file=env)
-    assert str(client.base_url).rstrip("/") == "https://api.anthropic.com"
-
-
-def test_missing_api_key_message_has_no_secret(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    with pytest.raises(llm.CredentialsError, match="ANTHROPIC_API_KEY"):
-        llm.load_api_key(tmp_path / "missing.env")
 
 
 def test_config_from_yaml(tmp_path: Path) -> None:
     path = tmp_path / "llm.yaml"
-    path.write_text("model: claude-haiku-5-5\nmax_items: 10\nmax_spend_usd: null\nmode: batch\n")
+    path.write_text("model: Qwen/Qwen2.5-1.5B-Instruct\nmax_items: 10\nbatch_size: 4\n")
     cfg = llm.load_config(path)
-    assert cfg.model == "claude-haiku-5-5" and cfg.max_spend_usd is None and cfg.mode == "batch"
+    assert cfg.model == "Qwen/Qwen2.5-1.5B-Instruct" and cfg.batch_size == 4
     path.write_text("modle: x\n")
     with pytest.raises(ValueError, match="unknown"):
         llm.load_config(path)
 
 
-def test_repo_config_has_no_cap() -> None:
-    """The committed config must not authorize spend: a human sets the cap."""
+def test_repo_config_is_local() -> None:
     cfg = llm.load_config(Path("configs/llm.yaml"))
-    assert cfg.max_spend_usd is None
+    assert cfg.device == "cpu" and "/" in cfg.model
+
+
+# --------------------------------------------------------------------------- real scorer
+
+
+@pytest.fixture(scope="module")
+def tiny_model_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A tiny random-weight Llama with a locally trained BPE tokenizer and chat template."""
+    torch = pytest.importorskip("torch")
+    transformers = pytest.importorskip("transformers")
+    tokenizers = pytest.importorskip("tokenizers")
+
+    out = tmp_path_factory.mktemp("tiny_llm")
+    corpus = [
+        "A B C detractor passive promoter",
+        "Product: Credit card Issue: Billing disputes State: CA Complaint:",
+        "I was charged a fee times and nobody called back.",
+        "system user assistant answer letter only",
+    ] * 50
+    tok = tokenizers.Tokenizer(tokenizers.models.BPE(unk_token="<unk>"))
+    tok.pre_tokenizer = tokenizers.pre_tokenizers.Whitespace()
+    trainer = tokenizers.trainers.BpeTrainer(
+        vocab_size=300,
+        special_tokens=["<unk>", "<pad>", "<s>", "</s>", "<|im_start|>", "<|im_end|>"],
+    )
+    tok.train_from_iterator(corpus, trainer)
+    fast = transformers.PreTrainedTokenizerFast(
+        tokenizer_object=tok,
+        unk_token="<unk>",
+        pad_token="<pad>",
+        bos_token="<s>",
+        eos_token="</s>",
+    )
+    fast.chat_template = (
+        "{% for m in messages %}<|im_start|>{{ m['role'] }} {{ m['content'] }}<|im_end|> "
+        "{% endfor %}"
+        "{% if add_generation_prompt %}<|im_start|>assistant {% endif %}"
+    )
+    fast.save_pretrained(out)
+    torch.manual_seed(0)
+    config = transformers.LlamaConfig(
+        vocab_size=len(fast), hidden_size=32, intermediate_size=64, num_hidden_layers=2,
+        num_attention_heads=4, num_key_value_heads=2, max_position_embeddings=256,
+        pad_token_id=fast.pad_token_id,
+    )  # fmt: skip
+    transformers.LlamaForCausalLM(config).save_pretrained(out)
+    return out
+
+
+def test_real_scorer_probabilities(tiny_model_dir: Path) -> None:
+    scorer = llm.transformers_scorer(_cfg(model=str(tiny_model_dir), batch_size=4))
+    texts = [it.text for it in _items(5)]
+    probs = scorer(texts)
+    assert probs.shape == (5, 3)
+    assert np.isfinite(probs).all() and (probs > 0).all()
+    np.testing.assert_allclose(probs.sum(axis=1), 1.0, atol=1e-6)
+
+
+def test_real_scorer_batching_matches_single(tiny_model_dir: Path) -> None:
+    """Left padding must not change any item's probabilities."""
+    scorer = llm.transformers_scorer(_cfg(model=str(tiny_model_dir)))
+    texts = ["short", "a much longer complaint about a credit card fee and nobody called back"] * 2
+    batched = scorer(texts)
+    single = np.vstack([scorer([t]) for t in texts])
+    np.testing.assert_allclose(batched, single, atol=1e-5)
+
+
+def test_real_scorer_is_deterministic_and_truncates(tiny_model_dir: Path) -> None:
+    cfg = _cfg(model=str(tiny_model_dir), max_input_tokens=40)
+    scorer = llm.transformers_scorer(cfg)
+    long_text = "I was charged a fee " * 200
+    a, b = scorer([long_text]), scorer([long_text])
+    np.testing.assert_array_equal(a, b)
+    assert scorer.last_truncated == 1  # type: ignore[attr-defined]
+
+
+def test_real_labeling_end_to_end(tiny_model_dir: Path, tmp_path: Path) -> None:
+    cfg = _cfg(model=str(tiny_model_dir))
+    res = llm.label_items(
+        _items(4),
+        cfg,
+        cache=DiskCache(tmp_path),
+        scorer=llm.transformers_scorer(cfg),
+        dry_run=False,
+    )
+    assert res.predictions is not None and res.n_failed == 0
+    nps.validate_predictions(res.predictions)
