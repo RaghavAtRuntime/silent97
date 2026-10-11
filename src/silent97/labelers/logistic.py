@@ -24,7 +24,7 @@ from sklearn.preprocessing import StandardScaler
 
 from silent97.data import schema
 from silent97.data.simulate import AGE_BANDS, PROVINCES
-from silent97.estimators.nps import DETRACTOR_MAX, PROMOTER_MIN, validate_scores
+from silent97.labelers.base import DETRACTOR, PASSIVE, PROMOTER, score_classes
 
 __all__ = [
     "LinearSoftmaxPredictor",
@@ -34,10 +34,6 @@ __all__ = [
     "predict_folds",
     "score_classes",
 ]
-
-DETRACTOR: Final = 0
-PASSIVE: Final = 1
-PROMOTER: Final = 2
 
 Predictor = Callable[[NDArray[np.float64]], NDArray[np.float64]]
 """Maps a feature matrix (m, p) to predictions (m, 2) = [P(promoter), P(detractor)]."""
@@ -55,14 +51,6 @@ _FEATURE_COLUMNS: Final = (
     "monthly_txn_count",
     "signal",
 )
-
-
-def score_classes(y: ArrayLike) -> NDArray[np.int64]:
-    """Map 0..10 scores to classes 0 = detractor, 1 = passive, 2 = promoter."""
-    scores = validate_scores(y)
-    return np.where(
-        scores >= PROMOTER_MIN, PROMOTER, np.where(scores <= DETRACTOR_MAX, DETRACTOR, PASSIVE)
-    ).astype(np.int64)
 
 
 def design_matrix(table: pa.Table) -> tuple[NDArray[np.float64], tuple[str, ...]]:
