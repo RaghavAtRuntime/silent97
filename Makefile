@@ -37,7 +37,7 @@ e02:
 cfpb:
 	$(UV) run python -m silent97.data.cfpb
 
-# E6 replays cached labels; paid LLM calls need --allow-llm-calls and a cap (see configs/llm.yaml).
+# E6 replays cached labels; scoring the pool with the local LLM needs --run-llm (see configs/llm.yaml).
 e06:
 	$(UV) run python experiments/e06_cfpb.py --config configs/e06_cfpb.yaml
 

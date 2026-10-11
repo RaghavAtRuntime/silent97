@@ -5,7 +5,7 @@ name: e06_cfpb
 seed: 20261014
 data: data/processed/cfpb/cfpb.parquet
 train_fraction: 0.2          # trains the tabular and embedding labelers
-pool_size: 10000             # inference pool; the LLM labels exactly these
+pool_size: 5000              # inference pool; the LLM labels exactly these (reviewer's choice)
 labelers: [tabular, embedding, llm]
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
 llm_config: configs/llm.yaml

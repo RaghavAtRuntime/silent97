@@ -3,7 +3,7 @@
 # spend. The weights download once from huggingface.co (needs network access).
 model: Qwen/Qwen2.5-0.5B-Instruct   # Apache-2.0, 0.5B parameters
 revision: null                      # pin a commit hash for byte-for-byte reproducibility
-max_items: 10000                    # cumulative cap on items scored from this cache
+max_items: 5000                     # cumulative cap on items scored from this cache (= E6 pool)
 max_input_tokens: 512               # longer prompts have the complaint text truncated
 batch_size: 8
 device: cpu
