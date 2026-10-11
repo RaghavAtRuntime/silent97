@@ -1,6 +1,7 @@
 """Tests for the CFPB loader on a small synthetic file in the export's format."""
 
 import csv
+import hashlib
 import io
 import json
 import zipfile
@@ -156,3 +157,106 @@ def test_download_writes_atomically(tmp_path: Path) -> None:
     cfpb.download("https://example.invalid/x.zip", dest, fetch=lambda url: b"payload")
     assert dest.read_bytes() == b"payload"
     assert not list(dest.parent.glob("*.part"))
+
+
+# --- Hugging Face mirror of the older export (the current official export no longer
+# carries the narrative or "Consumer disputed?" columns) ---------------------------
+
+CURRENT_HEADER = [h for h in HEADER if h not in (
+    "Consumer complaint narrative", "Consumer consent provided?", "Consumer disputed?",
+)]  # fmt: skip
+
+
+def _write_mirror(directory: Path) -> Path:
+    """The fixture rows as two Parquet shards, with integer complaint ids as in the mirror."""
+    directory.mkdir(parents=True)
+    rows = []
+    for date, product, issue, narrative, state, disputed, cid in ROWS:
+        row: dict[str, object] = dict.fromkeys(HEADER, "x")
+        row.update({
+            "Date received": date, "Product": product, "Issue": issue,
+            "Consumer complaint narrative": narrative or None, "State": state or None,
+            "Consumer disputed?": disputed or None, "Complaint ID": int(cid),
+        })  # fmt: skip
+        rows.append(row)
+    frame = pl.DataFrame(
+        rows, schema={h: (pl.Int64 if h == "Complaint ID" else pl.String) for h in HEADER}
+    )
+    frame[:5].write_parquet(directory / "train-00000-of-00002.parquet")
+    frame[5:].write_parquet(directory / "train-00001-of-00002.parquet")
+    return directory
+
+
+def _write_current_export(path: Path, edits: dict[str, dict[str, str]], drop: set[str]) -> Path:
+    """The fixture rows in today's export format (no narrative or dispute columns)."""
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(CURRENT_HEADER)
+    for date, product, issue, _narrative, state, _disputed, cid in ROWS:
+        if cid in drop:
+            continue
+        iso = date if "-" in date else f"{date[6:]}-{date[:2]}-{date[3:5]}"
+        row = dict.fromkeys(CURRENT_HEADER, "x")
+        row.update({"Date received": iso, "Product": product, "Issue": issue, "State": state,
+                    "Complaint ID": cid, **edits.get(cid, {})})  # fmt: skip
+        w.writerow([row[h] for h in CURRENT_HEADER])
+    path.write_text(buf.getvalue())
+    return path
+
+
+def test_load_mirror_parquet_matches_csv(tmp_path: Path) -> None:
+    csv_df = cfpb.filter_complaints(cfpb.load_export(_write_export(tmp_path / "c.csv", False)))
+    mirror = _write_mirror(tmp_path / "mirror")
+    from_dir = cfpb.filter_complaints(cfpb.load_export(mirror))
+    from_file = cfpb.filter_complaints(cfpb.load_export(mirror / "train-00000-of-00002.parquet"))
+    assert from_dir.equals(csv_df)
+    assert from_file["complaint_id"].to_list() == ["1", "2", "4"]
+
+
+def test_download_verifies_sha256(tmp_path: Path) -> None:
+    dest = tmp_path / "raw" / "shard.parquet"
+    good = hashlib.sha256(b"payload").hexdigest()
+    with pytest.raises(ValueError, match="SHA-256"):
+        cfpb.download("https://example.invalid/x", dest, fetch=lambda url: b"tampered", sha256=good)
+    assert not dest.exists() and not list(dest.parent.glob("*.part"))
+    cfpb.download("https://example.invalid/x", dest, fetch=lambda url: b"payload", sha256=good)
+    assert dest.read_bytes() == b"payload"
+    dest.write_bytes(b"corrupted later")
+    with pytest.raises(ValueError, match="SHA-256"):
+        cfpb.download("https://example.invalid/x", dest, fetch=lambda url: b"payload", sha256=good)
+
+
+def test_mirror_files_are_pinned() -> None:
+    assert len(cfpb.MIRROR_FILES) == 3
+    for url, sha in cfpb.MIRROR_FILES:
+        assert url.startswith("https://huggingface.co/datasets/BEE-spoke-data/")
+        assert len(sha) == 64 and int(sha, 16) >= 0
+
+
+def test_crosscheck_against_current_export(tmp_path: Path) -> None:
+    kept = cfpb.filter_complaints(cfpb.load_export(_write_mirror(tmp_path / "mirror")))
+    official = _write_current_export(
+        tmp_path / "official.csv", edits={"2": {"Product": "Credit card"}}, drop={"4"}
+    )
+    check = cfpb.crosscheck(kept, official)
+    assert check == {
+        "n_checked": 4,
+        "n_found": 3,
+        "n_identical": 2,
+        "mismatches": {"date_received": 0, "product": 1, "issue": 0, "state": 0},
+        "official_source": "official.csv",
+    }
+
+
+def test_build_records_mirror_sources_and_crosscheck(tmp_path: Path) -> None:
+    mirror = _write_mirror(tmp_path / "mirror")
+    official = _write_current_export(tmp_path / "official.csv", edits={}, drop=set())
+    parquet, manifest_path = cfpb.build(mirror, tmp_path / "out", crosscheck_export=official)
+    manifest = json.loads(manifest_path.read_text())
+    assert manifest["n_rows"] == 4
+    assert sorted(manifest["source_files"]) == [
+        "train-00000-of-00002.parquet",
+        "train-00001-of-00002.parquet",
+    ]
+    assert manifest["crosscheck"]["n_identical"] == 4
+    assert cfpb.build(mirror, tmp_path / "again")[0].read_bytes() == parquet.read_bytes()
