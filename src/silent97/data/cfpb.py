@@ -44,6 +44,7 @@ __all__ = [
     "download",
     "filter_complaints",
     "load_export",
+    "main",
     "tabular_design",
 ]
 
@@ -206,3 +207,23 @@ def tabular_design(df: pl.DataFrame) -> tuple[NDArray[np.float64], tuple[str, ..
             cols.append((values == level).astype(np.float64))
             names.append(f"{field}={level}")
     return np.column_stack(cols), tuple(names)
+
+
+def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the network
+    """``python -m silent97.data.cfpb``: download the export once and build the Parquet."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Download and filter the CFPB export")
+    parser.add_argument("--url", default=EXPORT_URL)
+    parser.add_argument("--raw", default="data/raw/cfpb/complaints.csv.zip")
+    parser.add_argument("--out", default="data/processed/cfpb")
+    args = parser.parse_args(argv)
+    src = download(args.url, args.raw)
+    parquet, manifest = build(src, args.out)
+    info = json.loads(manifest.read_text())
+    print(f"wrote {parquet}: {info['n_rows']} complaints, dispute rate {info['dispute_rate']:.4f}")
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())

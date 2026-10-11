@@ -24,7 +24,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import polars as pl
 
-__all__ = ["ESTIMATOR_STYLE", "apply_style", "coverage_figure"]
+__all__ = ["ESTIMATOR_STYLE", "apply_style", "coverage_figure", "efficiency_figure"]
 
 TEXT_PRIMARY: Final = "#0b0b0b"
 TEXT_SECONDARY: Final = "#52514e"
@@ -95,6 +95,7 @@ def coverage_figure(
         "ppi_crossfit",
     ),
     title: str = "",
+    width_label: str = "mean interval width (NPS points, log scale)",
 ) -> Path:
     """Coverage (left) and mean interval width (right) against survey size n.
 
@@ -177,7 +178,7 @@ def coverage_figure(
     ticks = [t for t in (0.1, 0.3, 1, 3, 10, 30, 100) if lo_w / 1.5 <= t <= hi_w * 1.5]
     ax_w.set_yticks(ticks, [f"{t:g}" for t in ticks])
     ax_w.set_xlabel("surveyed customers n (log scale)")
-    ax_w.set_ylabel("mean interval width (NPS points, log scale)")
+    ax_w.set_ylabel(width_label)
     ax_w.set_title("Interval width")
     # One shared legend below both panels: estimators (from the width panel, which
     # has all of them) followed by the coverage reference marks.
@@ -191,4 +192,60 @@ def coverage_figure(
     if title:
         fig.suptitle(title, color=TEXT_PRIMARY, fontsize=12)
     fig.tight_layout(rect=(0, 0.12, 1, 1))
+    return _save(fig, path)
+
+
+def efficiency_figure(
+    table: pl.DataFrame,
+    path: str | Path,
+    *,
+    theory: dict[int, Any],
+    threshold: tuple[float, float] = (0.6, 1.5),
+    estimators: tuple[str, ...] = ("ppi", "ppi_pp"),
+    title: str = "",
+) -> Path:
+    """Effective n / n against model-outcome correlation, one panel per survey size n.
+
+    ``table`` has columns ``n_labeled``, ``estimator``, ``model_corr``, ``ratio``,
+    ``ratio_lo`` and ``ratio_hi`` (paired-bootstrap 95% interval). ``theory[n]`` is a
+    callable rho -> ratio drawn as the reference curve. The dashed segment marks the
+    A3 requirement (ratio >= threshold[1] for rho >= threshold[0]).
+    """
+    apply_style()
+    ns = sorted(table["n_labeled"].unique().to_list())
+    fig, axes = plt.subplots(1, len(ns), figsize=(5.2 * len(ns), 4.4), sharey=True, squeeze=False)
+    rho_max = float(table["model_corr"].to_numpy().max())
+    grid = [i * (rho_max + 0.05) / 200 for i in range(201)]
+    for ax, n in zip(axes[0], ns, strict=True):
+        curve = theory[n]
+        ax.plot(grid, [curve(r) for r in grid], color=REFERENCE, lw=1.2,
+                label="theory, PPI++: 1 / (1 - ρ² / (1 + n/N))")  # fmt: skip
+        ax.plot([threshold[0], rho_max + 0.05], [threshold[1]] * 2, color=REFERENCE, lw=0.8,
+                ls="--", label=f"A3: ≥ {threshold[1]}× when ρ ≥ {threshold[0]}")  # fmt: skip
+        ax.axhline(1.0, color=GRID, lw=1.0)
+        k = len(estimators)
+        for i, name in enumerate(estimators):
+            rows = table.filter((pl.col("n_labeled") == n) & (pl.col("estimator") == name))
+            rows = rows.sort("model_corr")
+            if rows.is_empty():
+                continue
+            style = ESTIMATOR_STYLE[name]
+            x = rows["model_corr"].to_numpy() + 0.014 * (i - (k - 1) / 2)
+            y = rows["ratio"].to_numpy()
+            err = [y - rows["ratio_lo"].to_numpy(), rows["ratio_hi"].to_numpy() - y]
+            # The first estimator is drawn hollow so near-identical points stay visible.
+            face = "none" if i == 0 and k > 1 else style["color"]
+            edge = style["color"] if i == 0 and k > 1 else SURFACE
+            ax.errorbar(x, y, yerr=err, color=style["color"], marker=style["marker"], lw=0,
+                        elinewidth=1.4, capsize=2.5, label=style["label"], markerfacecolor=face,
+                        markeredgecolor=edge, markeredgewidth=1.2)  # fmt: skip
+        ax.set_title(f"n = {n} surveyed customers")
+        ax.set_xlabel("model-outcome correlation ρ (predicted vs true NPS value)")
+        ax.set_xlim(-0.02, rho_max + 0.05)
+    axes[0][0].set_ylabel("effective n / n (classical responses per response)")
+    handles, labels = axes[0][0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.01))
+    if title:
+        fig.suptitle(title, color=TEXT_PRIMARY, fontsize=12)
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
     return _save(fig, path)

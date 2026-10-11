@@ -58,6 +58,8 @@ extend-exclude = ["docs", "*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "NPY", "RUF", "SIM", "C4"]
+# Figure labels and tables use rho, multiplication and comparison signs deliberately.
+allowed-confusables = ["ρ", "×", "≥", "≤", "−"]
 
 [tool.mypy]
 python_version = "3.11"
