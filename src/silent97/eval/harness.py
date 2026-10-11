@@ -11,7 +11,8 @@ Per scenario (built once):
    an earlier self-selected survey wave),
    using ``default_rng([seed, 1])``. Fit the logistic labeler and predict everyone.
 3. The inference pool is everyone *not* in the training set; the truth is the
-   pool's NPS.
+   pool's NPS. (Other datasets, such as CFPB, can build a :class:`PreparedScenario`
+   whose pool is any subset; the unlabeled set is always the pool minus the draw.)
 
 Per replicate, with ``default_rng([seed, 2, scenario_index, n, replicate])``:
 
@@ -47,6 +48,7 @@ from silent97.data import schema
 from silent97.data.simulate import SimConfig, simulate_population
 from silent97.estimators.ppi import cross_fit, ppi_crossfit
 from silent97.labelers.logistic import design_matrix, fit_logistic, predict_folds
+from silent97.labelers.tabular import TabularLabeler
 
 __all__ = [
     "RESULT_COLUMNS",
@@ -166,14 +168,23 @@ class Scenario:
 
 @dataclass(frozen=True)
 class LabelerConfig:
-    """Training split and penalty of the logistic labeler."""
+    """Training split and model of the labeler.
+
+    ``kind`` is ``"logistic"`` (multinomial logistic regression with penalty ``c``)
+    or ``"tabular"`` (LightGBM + isotonic calibration). Cross-fitting
+    (``ppi_crossfit``) always refits the logistic model, which is fast enough to fit
+    K times per replicate.
+    """
 
     n_train: int = 5_000
     c: float = 1.0
     train_mechanism: str = "mcar"
     """``"mcar"``, ``"mar"``, ``"mnar"``, or ``"scenario"`` for the scenario's mechanism."""
+    kind: str = "logistic"
 
     def __post_init__(self) -> None:
+        if self.kind not in ("logistic", "tabular"):
+            raise ValueError(f"labeler.kind must be 'logistic' or 'tabular', got {self.kind!r}")
         if self.n_train < 50:
             raise ValueError(f"labeler.n_train must be >= 50, got {self.n_train}")
         allowed = (*schema.MECHANISMS, "scenario")
@@ -284,8 +295,11 @@ def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
     train_idx = draw_respondents(
         everyone, train_weights, cfg.labeler.n_train, np.random.default_rng([cfg.seed, 1])
     )
-    predict = fit_logistic(x[train_idx], scores[train_idx], c=cfg.labeler.c)
-    p_all = predict(x)
+    if cfg.labeler.kind == "tabular":
+        tabular = TabularLabeler(random_state=cfg.seed % (2**31 - 1))
+        p_all = tabular.fit(x[train_idx], scores[train_idx]).predict(x)
+    else:
+        p_all = fit_logistic(x[train_idx], scores[train_idx], c=cfg.labeler.c)(x)
 
     pool = np.setdiff1d(everyone, train_idx)
     value = 100.0 * ((scores >= 9).astype(np.float64) - (scores <= 6).astype(np.float64))
@@ -309,8 +323,8 @@ def run_replicate(
     rng = np.random.default_rng([cfg.seed, 2, scenario_index, n, replicate])
     lab = draw_respondents(prep.pool, prep.propensity[prep.pool], n, rng)
     check_disjoint(prep.train_idx, lab)
-    unlab_mask = np.ones(prep.scores.size, dtype=bool)
-    unlab_mask[prep.train_idx] = False
+    unlab_mask = np.zeros(prep.scores.size, dtype=bool)  # unlabeled = pool minus this draw
+    unlab_mask[prep.pool] = True
     unlab_mask[lab] = False
 
     y_lab = prep.scores[lab]

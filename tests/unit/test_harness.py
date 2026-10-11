@@ -1,12 +1,13 @@
 """Tests for the experiment harness grid runner."""
 
+import dataclasses
 from pathlib import Path
 
 import numpy as np
 import polars as pl
 import pytest
 
-from silent97.estimators import classical, ppi
+from silent97.estimators import classical, nps, ppi
 from silent97.eval import harness
 
 SMALL = {
@@ -132,6 +133,7 @@ def test_write_results(results: pl.DataFrame, tmp_path: Path) -> None:
         ({"surprise": 1}, "unknown"),
         ({"labeler": {"n_train": 10, "depth": 3}}, "unknown"),
         ({"labeler": {"train_mechanism": "respondents"}}, "train_mechanism"),
+        ({"labeler": {"kind": "forest"}}, "kind"),
         (
             {"scenarios": [{"name": "a", "mechanism": "mcar"}, {"name": "a", "mechanism": "mar"}]},
             "unique",
@@ -157,3 +159,27 @@ def test_repo_e01_config_loads() -> None:
     cfg = harness.load_grid_config(Path("configs/e01_coverage.yaml"))
     assert cfg.n_labeled == (50, 100, 200, 500, 1000)
     assert cfg.replicates == 1000
+
+
+def test_tabular_labeler_kind() -> None:
+    cfg = harness.GridConfig.from_dict(
+        {**SMALL, "labeler": {"n_train": 800, "kind": "tabular"}, "estimators": ["ppi"]}
+    )
+    prep = harness.prepare_scenario(cfg, 0)
+    logistic = harness.prepare_scenario(harness.GridConfig.from_dict(SMALL), 0)
+    np.testing.assert_array_equal(prep.train_idx, logistic.train_idx)
+    assert not np.allclose(prep.p_all, logistic.p_all)
+    rows = harness.run_replicate(prep, cfg, 0, 40, 0)
+    assert rows[0]["estimator"] == "ppi" and np.isfinite(rows[0]["point"])
+
+
+def test_pool_subset_defines_unlabeled_set() -> None:
+    """A prepared scenario whose pool is a subset (as for CFPB): unlabeled = pool - draw."""
+    base = harness.prepare_scenario(harness.GridConfig.from_dict(SMALL), 0)
+    pool = base.pool[:2000]
+    prep = dataclasses.replace(
+        base, pool=pool, truth=float(nps.nps_values(base.scores[pool]).mean())
+    )
+    cfg = harness.GridConfig.from_dict({**SMALL, "estimators": ["ppi", "ppi_crossfit"]})
+    rows = harness.run_replicate(prep, cfg, 0, 40, 0)
+    assert [r["n_unlabeled"] for r in rows] == [1960, 1960]
