@@ -206,9 +206,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - CLI wrappe
     if args.cmd == "pack":
         print(f"{args.out}  sha256 {pack(args.cache_dir, args.out)}")
     else:
-        print(
-            f"unpacked {fetch(args.config, cache_dir=args.cache_dir)} new file(s) into {args.cache_dir}"
-        )
+        n = fetch(args.config, cache_dir=args.cache_dir)
+        print(f"unpacked {n} new file(s) into {args.cache_dir}")
     return 0
 
 
