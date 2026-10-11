@@ -195,7 +195,7 @@ available, and **$0 was spent**. Nothing is mocked in place of real results.
 | Criterion | Status |
 |---|---|
 | All labels cached | ✗ Blocked: no CFPB data (network), no embedding model (network), no API key |
-| LLM compute and items reported (was "spend under cap") | Local model, so $0 by construction. Item cap 10,000. The E6 run writes `docs/results/e06_cfpb_llm_report.json` (items scored, invalid, seconds) |
+| LLM compute and items reported (was "spend under cap") | Local model, so $0 by construction. Item cap 5,000 (was 10,000; see the session 2 update). The E6 run writes `docs/results/e06_cfpb_llm_report.json` (items scored, invalid, seconds) |
 | E6 coverage reported for each labeler | ✗ Not run |
 | `make test`, `make lint`, `make test-slow` | Pass: 1,305 fast tests, lint clean, slow suite 15/15 (4 min 43 s; estimators unchanged since) |
 
@@ -290,3 +290,120 @@ note.
 2. Pool size (above).
 
 Phase 3 stops here: Gate G3 cannot be completed until the network access is in place.
+
+---
+
+## Update, session 2 (2026-10-11): reviewer decisions applied; still blocked on network
+
+### Decisions received
+
+1. **A3 is judged on the MSE ratio** (MSE_classical / MSE_PPI++).
+2. **E6 pool size: 5,000.**
+3. The environment's network policy was updated.
+
+### What changed
+
+| Change | Files |
+|---|---|
+| A3 is judged on the MSE ratio. `docs/PLAN.md` A3 now says so; the width-based n_eff is still reported alongside. E2's summary leads with the MSE ratio. Its A3 columns (`a3_within_mc`, `a3_threshold_met`) use MSE, and the width-based theory check is kept as `theory_within_mc_widths` (information only). The headline E2 figure is now MSE-based (`e02_model_quality.png`, with the A3 line); the width-based figure moved to `e02_model_quality_widths.png` | `experiments/e02_model_quality.py`, `viz/figures.py` (`metric="mse" \| "widths"`), `tests/unit/test_e02.py` (new, 3 tests), `docs/PLAN.md` |
+| E2 rerun (1,000 replicates, same seed, 489 s). Every value matches the previous run exactly; only the column names and order changed | `docs/results/e02_model_quality*` |
+| E6 pool 5,000, and the LLM's cumulative item cap set to 5,000 to match | `configs/e06_cfpb.yaml`, `configs/llm.yaml` |
+| The CFPB loader reads a Parquet mirror and cross-checks it against the official export (see "CFPB export changed") | `data/cfpb.py`, `tests/unit/test_cfpb.py` (5 new tests) |
+| Fixed the stale Makefile comment on E6 (`--run-llm`, not `--allow-llm-calls`) | `Makefile` |
+
+### A3 result (MSE-based), from `docs/results/e02_model_quality_summary.csv`
+
+- **At least 1.5× when ρ ≥ 0.6: met at all 8 points.** The MSE ratios are 1.645, 1.867, 2.909 and
+  4.259 (n = 100) and 1.560, 2.078, 2.979 and 3.966 (n = 500). The smallest, 1.560 at n = 500,
+  ρ = 0.604, has a bootstrap interval of [1.439, 1.686], so that point clears 1.5× on its point
+  estimate, but not with Monte Carlo margin.
+- **Within Monte Carlo error of the theory: 18 of 20 points.** The two misses:
+  - n = 100, ρ = 0.003: 0.983 [0.969, 0.995] against theory 1.000. With a useless model,
+    PPI++ is about 1.7% *less* efficient than classical at n = 100, from the noise in
+    estimating λ̂ on the same 100 responses. This is an O(1/n) effect that the
+    asymptotic theory leaves out. At n = 500 the same point is 1.001 [0.995, 1.006].
+  - n = 500, ρ = 0.881: 3.966 [3.542, 4.416] against theory 4.434. It misses by 0.018 on
+    the upper bound. The n = 100 point at the same ρ is inside (4.259 [3.830, 4.763]).
+    I read this as Monte Carlo chance (1 in 20 is expected at 95%), not a systematic gap.
+- Coverage is unaffected: all 60 coverage cells are inside the A1 band.
+
+### CFPB export changed: narrative and dispute columns are gone
+
+With `files.consumerfinance.gov` now reachable, the official export
+(`complaints.csv.zip`, 353 MB, last modified 2026-10-11) downloads. But **it no longer
+has the "Consumer complaint narrative", "Consumer consent provided?" or "Consumer
+disputed?" columns.** It has 15 columns and about 26 million rows. Without them the benchmark
+cannot be built from the official file. The CFPB search API (`www.consumerfinance.gov`)
+is still blocked here, so I could not check whether it still serves them.
+
+Two public mirrors of the older export still carry both fields:
+
+| Mirror | License | Rows | Columns |
+|---|---|---|---|
+| `BEE-spoke-data/consumer-finance-complaints`, `has-text` subset (3 Parquet shards, 925 MB) | CC0-1.0 | rows with a narrative | identical to the original export |
+| `davidheineman/consumer-finance-complaints-large` | Apache-2.0 | 7.2 M | API field names |
+
+The loader now defaults to the first one (the same column names, so no remapping). Its
+three shards are pinned by the SHA-256s that Hugging Face publishes, and
+`download` refuses a file that does not match. Because the mirror is a third-party copy, `build` records
+`crosscheck` in the manifest. For every kept complaint, it looks the complaint id up in
+the current official export and counts how many have identical date, product, issue and
+state. Narrative and dispute cannot be checked against the official source any more.
+Comparing them against the second mirror is a further check I can add if you want it.
+
+**This changes the data source from the one in the spec, so it needs your OK.** It is still
+public CFPB data, and nothing is sent to an external API, so it is within section 9.
+
+### Still blocked: Hugging Face's file CDN
+
+Hugging Face now redirects every weight and dataset download from `huggingface.co` to
+**`us.aws.cdn.hf.co`**, and the network policy denies that host (403 on CONNECT). The old
+hosts (`cdn-lfs.huggingface.co`, `cas-bridge.xethub.hf.co`) are no longer used. This blocks
+the MiniLM embedding model, the Qwen2.5-0.5B weights and the CFPB mirror. Small metadata
+files from `huggingface.co` itself work.
+
+### New statistical caveat: the finite-pool effect at pool 5,000
+
+E6's truth is the dispute rate of the 5,000-complaint pool, and each replicate draws n
+complaints from that pool *without replacement*. The intervals use the usual iid variance
+with no finite-population correction. They are therefore conservative for the pool rate,
+by a factor of about √(1 − n/5000) on the true standard error. For classical, the expected
+coverage of a nominal 90% interval is 2Φ(1.645 / √(1 − n/N_pool)) − 1:
+
+| n | pool 5,000 | pool 10,000 |
+|---|---|---|
+| 50 | 0.902 | 0.901 |
+| 100 | 0.903 | 0.902 |
+| 200 | 0.907 | 0.903 |
+| 500 | 0.917 | 0.909 |
+| 1,000 | **0.934** | 0.917 |
+
+PPI and PPI++ are conservative in the same way: the error variance relative to the pool
+rate is (1 − n/N_pool)·S²(r − (n/N)f)/n, which is below the reported S_f²/N + S_r²/n. So at pool
+5,000, E6 should show coverage **above** the A1 band at n = 1,000, and borderline at
+n = 500. This is over-coverage (valid but too wide), not a failure, and A1 formally
+covers the simulator only. I did not account for it when I offered 5,000 against
+10,000 as a pure runtime trade-off last session.
+
+### Gate G3 status (session 2)
+
+| Criterion | Status |
+|---|---|
+| All labels cached | ✗ Blocked: `us.aws.cdn.hf.co` (models and mirror), and the CFPB source decision |
+| LLM compute and items reported | Not run. Pool and cap are both 5,000 (about 1.2 h of CPU scoring, projected) |
+| E6 coverage reported for each labeler | ✗ Not run |
+| `make test`, `make lint` | Pass: 1,313 fast tests, lint clean. `make test-slow` not rerun (no estimator changes) |
+
+### What I need from you
+
+1. **Network:** add `us.aws.cdn.hf.co` to Allowed domains. Optionally also add
+   `www.consumerfinance.gov`, so I can check whether the official API still serves
+   narratives and disputes.
+2. **CFPB source:** OK to use the CC0 Hugging Face mirror, with the official-export
+   cross-check in the manifest?
+3. **Pool size and the finite-pool effect** (table above): keep 5,000 and report the
+   n = 1,000 over-coverage as expected and explained; or go to 10,000 (about 2.5 h of
+   local scoring); or keep 5,000 and drop n = 1,000 from E6.
+
+Once those are settled, the next session runs `make cfpb`, E6 with all three labelers
+(`--run-llm`), and writes the G3 note.
