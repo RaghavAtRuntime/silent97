@@ -1,4 +1,4 @@
-.PHONY: setup test test-slow lint format coverage reproduce demo simulate e01 e02 e06 cfpb fetch-labels pack-labels
+.PHONY: setup test test-slow lint format coverage reproduce demo simulate e01 e02 e06 e06a cfpb amazon planning fetch-labels pack-labels
 
 UV ?= uv
 
@@ -37,6 +37,10 @@ e02:
 cfpb:
 	$(UV) run python -m silent97.data.cfpb
 
+# Amazon Reviews 2023, Gift Cards (SHA-256 pinned; research use).
+amazon:
+	$(UV) run python -m silent97.data.amazon
+
 # The cached labels behind the published results: download the pinned release asset
 # (configs/labels.yaml), check its SHA-256 and unpack it into cache/.
 fetch-labels:
@@ -54,9 +58,17 @@ pack-labels:
 e06:
 	$(UV) run python experiments/e06_cfpb.py --config configs/e06_cfpb.yaml --run-llm
 
+# E6 on Amazon gift-card reviews: real text with a real satisfaction rating.
+e06a:
+	$(UV) run python experiments/e06_amazon.py --config configs/e06_amazon.yaml --run-llm
+
+# Responses needed by model quality (rho) and target margin.
+planning:
+	$(UV) run python -m silent97.eval.planning table --out docs/results/planning_table.md
+
 # Every experiment result and figure. Experiments are added as their phases land.
-# E6 needs the CFPB data (`make cfpb`) and its cached labels (`make fetch-labels`).
-reproduce: simulate e01 e02 e06
+# E6 needs the data (`make cfpb amazon`) and the cached labels (`make fetch-labels`).
+reproduce: simulate e01 e02 e06 e06a planning
 
 # The demo is built in Phase 5.
 demo:

@@ -45,7 +45,7 @@ import polars as pl
 import yaml
 
 from silent97.data import cfpb
-from silent97.eval import harness, metrics
+from silent97.eval import harness, metrics, planning
 from silent97.labelers import embedding, llm
 from silent97.labelers.cache import DiskCache
 from silent97.labelers.tabular import TabularLabeler
@@ -210,6 +210,44 @@ def build_scenarios(
     return preps, llm_report
 
 
+def planning_lines(
+    summary: pl.DataFrame, preps: list[harness.PreparedScenario], seed: int, sample: int = 300
+) -> list[str]:
+    """Predicted gain from rho against the realized PPI++ gain, per labeler.
+
+    rho is estimated twice: on the whole pool, and, as a team would in practice, on one
+    random sample of ``sample`` past responses (with a bootstrap interval).
+    """
+    pool = preps[0].pool.size
+    rho = {p.scenario.name: p.model_corr for p in preps}
+    table = planning.compare_with_results(summary, rho=rho, pool=pool)
+    lines = [
+        "",
+        "## Planning check: predicted vs realized gain (PPI++)",
+        "",
+        "Predicted gain = 1 / (1 - rho^2 / (1 + n/N)) from rho on the pool "
+        "(`silent97.eval.planning`); realized gain = effective n / n from interval widths.",
+        "",
+        "| labeler | rho (pool) | rho from 300 past responses [95%] | n | predicted | realized |",
+        "|---|---|---|---|---|---|",
+    ]
+    rng = np.random.default_rng([seed, 7])
+    small = {}
+    for p in preps:
+        idx = rng.choice(p.pool, size=min(sample, p.pool.size), replace=False)
+        try:
+            est = planning.estimate_rho(p.scores[idx], p.p_all[idx], rng=rng)
+            small[p.scenario.name] = f"{est.rho:.3f} [{est.lo:.3f}, {est.hi:.3f}]"
+        except ValueError:  # constant predictions: rho is undefined
+            small[p.scenario.name] = "n/a"
+    for r in table.iter_rows(named=True):
+        lines.append(
+            f"| {r['scenario']} | {r['rho']:.3f} | {small[r['scenario']]} | {r['n_labeled']} | "
+            f"{r['predicted_gain']:.3f} | {r['realized_gain']:.3f} |"
+        )
+    return lines
+
+
 def run(
     cfg: E6Config,
     *,
@@ -263,6 +301,7 @@ def run(
             f"{'yes' if r['coverage_ok'] else 'NO'} | {r['mean_width_pp']:.2f} | "
             f"{r['bias_pp']:+.2f} | {r['effective_n']:.0f} |"
         )
+    lines += planning_lines(summary, preps, cfg.seed)
     (docs / f"{cfg.name}_summary.md").write_text("\n".join(lines) + "\n")
     for p in preps:
         figures.coverage_figure(
@@ -274,6 +313,13 @@ def run(
             title=f"E6, CFPB dispute rate, {p.scenario.name} labeler (ρ = {p.model_corr:.2f})",
             width_label="mean interval width (percentage points, log scale)",
         )
+    trap_n = 200 if 200 in cfg.n_labeled else cfg.n_labeled[0]
+    figures.trap_figure(
+        summary.rename({"mean_width_pp": "mean_width", "bias_pp": "bias"}),
+        docs / f"{cfg.name}_trap.png", n=trap_n, truth=-preps[0].truth,
+        value_label="dispute rate (%)",
+        title="Model-only dispute rate vs survey-corrected (CFPB complaints)",
+    )  # fmt: skip
     report_path = docs / f"{cfg.name}_llm_report.json"
     report_path.write_text(json.dumps(llm_report, indent=2, sort_keys=True, default=str) + "\n")
     return {"results": raw, "summary": summary_path, "llm_report": report_path}
