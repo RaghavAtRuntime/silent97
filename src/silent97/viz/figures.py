@@ -24,7 +24,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import polars as pl
 
-__all__ = ["ESTIMATOR_STYLE", "apply_style", "coverage_figure", "efficiency_figure"]
+__all__ = [
+    "ESTIMATOR_STYLE",
+    "apply_style",
+    "coverage_figure",
+    "efficiency_figure",
+    "trap_figure",
+]
 
 TEXT_PRIMARY: Final = "#0b0b0b"
 TEXT_SECONDARY: Final = "#52514e"
@@ -262,4 +268,63 @@ def efficiency_figure(
     if title:
         fig.suptitle(title, color=TEXT_PRIMARY, fontsize=12)
     fig.tight_layout(rect=(0, 0.08, 1, 1))
+    return _save(fig, path)
+
+
+TRAP_ESTIMATORS: Final = ("naive_model", "classical", "ppi_pp")
+
+
+def trap_figure(
+    summary: pl.DataFrame,
+    path: str | Path,
+    *,
+    n: int,
+    truth: float,
+    value_label: str,
+    estimators: tuple[str, ...] = TRAP_ESTIMATORS,
+    title: str = "",
+) -> Path:
+    """The model-only trap at one survey size: average intervals against the truth.
+
+    One row per (labeler, estimator): the dot is the mean point estimate (truth + bias)
+    and the bar spans the mean interval width around it. The coverage is printed at the
+    right. ``summary`` needs ``scenario``, ``estimator``, ``n_labeled``, ``bias``,
+    ``mean_width`` and ``coverage``.
+    """
+    rows = summary.filter((pl.col("n_labeled") == n) & pl.col("estimator").is_in(list(estimators)))
+    if rows.is_empty():
+        raise ValueError(f"no rows for n = {n}")
+    apply_style()
+    scenarios = sorted(rows["scenario"].unique().to_list())
+    labels: list[str] = []
+    ypos: list[float] = []
+    fig, ax = plt.subplots(figsize=(8.0, 0.42 * len(scenarios) * len(estimators) + 1.4))
+    y = 0.0
+    for scenario in scenarios:
+        for est in estimators:
+            r = rows.filter((pl.col("scenario") == scenario) & (pl.col("estimator") == est))
+            if r.is_empty():
+                continue
+            row = r.row(0, named=True)
+            point, half = truth + row["bias"], row["mean_width"] / 2
+            style = ESTIMATOR_STYLE[est]
+            ax.errorbar([point], [y], xerr=[[half], [half]], color=style["color"],
+                        marker=style["marker"], lw=0, elinewidth=3, capsize=0)  # fmt: skip
+            ax.annotate(f"coverage {row['coverage']:.0%}", (1.0, y), xycoords=("axes fraction",
+                        "data"), xytext=(6, 0), textcoords="offset points", va="center",
+                        fontsize=8, color=TEXT_SECONDARY, annotation_clip=False)  # fmt: skip
+            labels.append(f"{scenario}: {style['label']}")
+            ypos.append(y)
+            y += 1
+        y += 0.5
+    ax.set_yticks(ypos, labels)
+    ax.invert_yaxis()
+    ax.axvline(truth, color=REFERENCE, lw=1.2, ls="--")
+    ax.annotate("truth", (truth, 0), xycoords=("data", "axes fraction"), xytext=(3, 3),
+                textcoords="offset points", fontsize=8, color=TEXT_SECONDARY)  # fmt: skip
+    ax.set_xlabel(f"{value_label}: mean estimate and mean interval (n = {n} surveyed)")
+    ax.grid(axis="y", visible=False)
+    if title:
+        ax.set_title(title)
+    fig.tight_layout()
     return _save(fig, path)

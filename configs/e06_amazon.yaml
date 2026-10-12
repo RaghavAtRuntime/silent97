@@ -1,0 +1,18 @@
+# E6 (reviews): does it work on real text with a real satisfaction rating?
+# Amazon Reviews 2023, Gift Cards; NPS score = 2 x stars (5 promoter, 4 passive, 1-3
+# detractor). Build the data first: `uv run python -m silent97.data.amazon`.
+name: e06_amazon
+seed: 20261015
+data: data/processed/amazon/amazon.parquet
+train_fraction: 0.2          # trains the tabular and embedding labelers
+pool_size: 10000             # inference pool; the LLM labels exactly these
+labelers: [tabular, embedding, llm]
+embedding_model: sentence-transformers/all-MiniLM-L6-v2
+llm_config: configs/llm.yaml
+estimators: [classical, naive_model, ppi, ppi_pp, ppi_crossfit]
+n_labeled: [50, 100, 200, 500, 1000]
+replicates: 1000
+alpha: 0.1
+crossfit_folds: 10
+n_jobs: 4
+cache_dir: cache

@@ -11,7 +11,7 @@
 # fit in memory.
 model: Qwen/Qwen3.5-4B                                  # Apache-2.0, 4.2B parameters (text)
 revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a       # pinned commit (fetched 2026-10-11)
-max_items: 10000                    # cumulative cap over this cache: 4,992 (Qwen2.5-0.5B run) + 5,000
+max_items: 20000                    # cumulative cap over this cache: 4,992 + 4,992 (CFPB, two models) + 10,000 (reviews)
 max_input_tokens: 512               # longer prompts have the complaint text truncated
 batch_size: 8
 device: cpu

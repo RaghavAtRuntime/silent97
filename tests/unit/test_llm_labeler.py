@@ -407,3 +407,61 @@ def test_hybrid_upcast_matches_float32_of_stored_weights(tiny_hybrid_dir: Path) 
     )(texts)
     full = llm.transformers_scorer(_cfg(model=str(tiny_hybrid_dir), dtype="float32"))(texts)
     np.testing.assert_allclose(upcast, full, atol=1e-6)
+
+
+# --------------------------------------------------------------------------- per-source prompts
+
+
+def test_cfpb_cache_keys_are_unchanged_by_per_source_prompts() -> None:
+    """The cached CFPB labels stay valid: their prompt version is the original one."""
+    cfg = _cfg()
+    assert cfg.prompt_version_for("cfpb") == cfg.prompt_version
+    assert cfg.prompt_version_for("synthetic") == cfg.prompt_version
+    assert cfg.prompt_version_for("amazon_reviews") != cfg.prompt_version
+    assert llm.SYSTEM_PROMPTS["cfpb"] == llm.SYSTEM_PROMPT
+
+
+def test_review_items_render_title_and_text_only() -> None:
+    it = llm.render_review_item(review_id="r1", title=" Great card ", text="Worked fine. ")
+    assert it.source == "amazon_reviews"
+    assert it.text == "Review title: Great card\n\nReview:\nWorked fine."
+    assert "complaint" not in llm.SYSTEM_PROMPTS["amazon_reviews"].lower()
+
+
+def test_scorer_prompt_must_match_item_source(tmp_path: Path) -> None:
+    scorer = StubScorer()
+    scorer.system_prompt = llm.SYSTEM_PROMPTS["cfpb"]  # type: ignore[attr-defined]
+    items = [llm.render_review_item(review_id="r", title="t", text="x")]
+    with pytest.raises(ValueError, match="system prompt"):
+        llm.label_items(items, _cfg(), cache=DiskCache(tmp_path), scorer=scorer, dry_run=False)
+    assert scorer.n_scored == 0
+
+
+def test_mixed_sources_with_different_prompts_are_refused(tmp_path: Path) -> None:
+    items = [*_items(1), llm.render_review_item(review_id="r", title="t", text="x")]
+    with pytest.raises(ValueError, match="one system prompt"):
+        llm.label_items(
+            items, _cfg(), cache=DiskCache(tmp_path), scorer=StubScorer(), dry_run=False
+        )
+
+
+def test_review_keys_differ_from_cfpb_keys_for_the_same_text(tmp_path: Path) -> None:
+    cache = DiskCache(tmp_path)
+    cfpb_item = llm.LLMItem(item_id="1", source="cfpb", text="same text")
+    review_item = llm.LLMItem(item_id="1", source="amazon_reviews", text="same text")
+    llm.label_items([cfpb_item], _cfg(), cache=cache, scorer=StubScorer(), dry_run=False)
+    plan = llm.plan_run([review_item], _cfg(), cache)
+    assert plan.n_to_score == 1
+
+
+def test_render_prompt_uses_the_given_system_prompt() -> None:
+    transformers = pytest.importorskip("transformers")
+    tokenizers = pytest.importorskip("tokenizers")
+    tok = tokenizers.Tokenizer(tokenizers.models.WordLevel({"<unk>": 0}, unk_token="<unk>"))
+    fast = transformers.PreTrainedTokenizerFast(tokenizer_object=tok, unk_token="<unk>")
+    fast.chat_template = (
+        "{% for m in messages %}[{{ m['role'] }}]{{ m['content'] }}{% endfor %}"
+        "{% if add_generation_prompt %}[assistant]{% endif %}"
+    )
+    out = llm.render_prompt(fast, "hello", llm.SYSTEM_PROMPTS["amazon_reviews"])
+    assert out.startswith(f"[system]{llm.SYSTEM_PROMPTS['amazon_reviews']}[user]hello")

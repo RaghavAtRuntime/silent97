@@ -60,7 +60,9 @@ from silent97.labelers.cache import DiskCache, make_key
 __all__ = [
     "ALLOWED_SOURCES",
     "OPTION_LETTERS",
+    "REVIEW_PROMPT",
     "SYSTEM_PROMPT",
+    "SYSTEM_PROMPTS",
     "CapError",
     "LLMConfig",
     "LLMItem",
@@ -73,6 +75,7 @@ __all__ = [
     "plan_run",
     "render_cfpb_item",
     "render_prompt",
+    "render_review_item",
     "transformers_scorer",
     "upcast_linears",
 ]
@@ -80,7 +83,6 @@ __all__ = [
 _DTYPES: Final = frozenset({"float32", "bfloat16", "float16"})
 
 PROMPT_VERSION: Final = "nps-local-choice-v1"
-ALLOWED_SOURCES: Final = frozenset({"cfpb", "synthetic"})
 OPTION_LETTERS: Final = ("A", "B", "C")
 """Answer letters for (detractor, passive, promoter), in class order."""
 FAILED_PROBS: Final = (1 / 3, 1 / 3, 1 / 3)
@@ -97,6 +99,25 @@ SYSTEM_PROMPT: Final = (
     "Judge only from the complaint text, the product, the issue and the state given. "
     "Answer with the single letter A, B or C."
 )
+
+REVIEW_PROMPT: Final = (
+    "You read a customer's review of a product they bought and judge how the customer "
+    "feels about it. Choose one group:\n"
+    "A) detractor: dissatisfied; unlikely to recommend it and may warn others away.\n"
+    "B) passive: satisfied but unenthusiastic; would neither praise nor criticize it.\n"
+    "C) promoter: enthusiastic and likely to recommend it.\n"
+    "Judge only from the review title and text given. "
+    "Answer with the single letter A, B or C."
+)
+
+SYSTEM_PROMPTS: Final = {
+    "cfpb": SYSTEM_PROMPT,
+    "synthetic": SYSTEM_PROMPT,
+    "amazon_reviews": REVIEW_PROMPT,
+}
+"""System prompt per item source. Only these sources are accepted."""
+
+ALLOWED_SOURCES: Final = frozenset(SYSTEM_PROMPTS)
 
 Scorer = Callable[[list[str]], Any]
 """Maps item texts to class probabilities, shape (n, 3) in (detractor, passive, promoter)."""
@@ -146,7 +167,16 @@ class LLMConfig:
     @property
     def prompt_version(self) -> str:
         """Version tag hashed into every cache key (instructions, options, truncation)."""
-        spec = json.dumps([SYSTEM_PROMPT, OPTION_LETTERS, self.max_input_tokens])
+        return self._version(SYSTEM_PROMPT)
+
+    def prompt_version_for(self, source: str) -> str:
+        """The prompt version for items of ``source`` (its own system prompt)."""
+        if source not in SYSTEM_PROMPTS:
+            raise ValueError(f"unknown item source {source!r}")
+        return self._version(SYSTEM_PROMPTS[source])
+
+    def _version(self, system_prompt: str) -> str:
+        spec = json.dumps([system_prompt, OPTION_LETTERS, self.max_input_tokens])
         return f"{PROMPT_VERSION}:{hashlib.sha256(spec.encode()).hexdigest()[:12]}"
 
 
@@ -183,6 +213,12 @@ def render_cfpb_item(
     return LLMItem(item_id=str(complaint_id), source="cfpb", text=text)
 
 
+def render_review_item(*, review_id: str, title: str, text: str) -> LLMItem:
+    """The user message for a product review: its title and text only (not the rating)."""
+    body = f"Review title: {title.strip()}\n\nReview:\n{text.strip()}"
+    return LLMItem(item_id=str(review_id), source="amazon_reviews", text=body)
+
+
 def _check_sources(items: Iterable[LLMItem]) -> None:
     bad = sorted({it.source for it in items} - ALLOWED_SOURCES)
     if bad:
@@ -217,7 +253,9 @@ class RunPlan:
 
 def _keys(items: Sequence[LLMItem], cfg: LLMConfig) -> list[str]:
     return [
-        make_key(model=cfg.model_id, prompt_version=cfg.prompt_version, payload=it.text)
+        make_key(
+            model=cfg.model_id, prompt_version=cfg.prompt_version_for(it.source), payload=it.text
+        )
         for it in items
     ]
 
@@ -234,7 +272,10 @@ def plan_run(items: Sequence[LLMItem], cfg: LLMConfig, cache: DiskCache) -> RunP
     keys = _keys(items, cfg)
     todo = {k: it for k, it in zip(keys, items, strict=True) if k not in cache}
     tokens = sum(
-        min((len(SYSTEM_PROMPT) + len(it.text)) / cfg.chars_per_token, cfg.max_input_tokens)
+        min(
+            (len(SYSTEM_PROMPTS[it.source]) + len(it.text)) / cfg.chars_per_token,
+            cfg.max_input_tokens,
+        )
         for it in todo.values()
     )
     return RunPlan(
@@ -308,6 +349,12 @@ def label_items(
     todo.sort(key=lambda kv: len(kv[1].text))
     if todo and scorer is None:
         raise ValueError("a scorer is required when dry_run=False and items are uncached")
+    prompts = {SYSTEM_PROMPTS[it.source] for _, it in todo}
+    if len(prompts) > 1:
+        raise ValueError("items to score must share one system prompt (one source type)")
+    wanted = getattr(scorer, "system_prompt", None)
+    if prompts and wanted is not None and prompts != {wanted}:
+        raise ValueError("the scorer's system prompt does not match the items' source")
 
     start = time.perf_counter()
     for b in range(0, len(todo), cfg.batch_size):
@@ -350,7 +397,7 @@ def label_items(
     return LabelResult(plan, predictions, class_probs, len(todo), n_failed, seconds)
 
 
-def render_prompt(tok: Any, text: str) -> str:
+def render_prompt(tok: Any, text: str, system_prompt: str = SYSTEM_PROMPT) -> str:
     """The chat-formatted prompt for one item, ending at the answer position.
 
     Thinking is switched off (``enable_thinking=False``): the readout needs the answer
@@ -358,7 +405,7 @@ def render_prompt(tok: Any, text: str) -> str:
     the flag ignore it.
     """
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": text},
     ]
     out: str = tok.apply_chat_template(
@@ -412,7 +459,7 @@ def upcast_linears(model: Any, *, compute_dtype: Any) -> int:
     return n
 
 
-def transformers_scorer(cfg: LLMConfig) -> Scorer:
+def transformers_scorer(cfg: LLMConfig, system_prompt: str = SYSTEM_PROMPT) -> Scorer:
     """A local ``transformers`` scorer (needs the ``text`` extra and the model weights).
 
     Prompts are rendered with the model's chat template (system + user + generation
@@ -420,7 +467,8 @@ def transformers_scorer(cfg: LLMConfig) -> Scorer:
     next-token position. The item text is truncated so the full prompt fits
     ``max_input_tokens``. With ``weights_dtype`` set and different from ``dtype``, the
     weights are loaded in ``weights_dtype`` and the compute runs in ``dtype``
-    (:func:`upcast_linears`).
+    (:func:`upcast_linears`). ``system_prompt`` must be the prompt of the items' source
+    (:data:`SYSTEM_PROMPTS`); :func:`label_items` checks this.
     """
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -448,7 +496,7 @@ def transformers_scorer(cfg: LLMConfig) -> Scorer:
         option_ids.append(ids[0])
 
     def render(text: str) -> str:
-        return render_prompt(tok, text)
+        return render_prompt(tok, text, system_prompt)
 
     overhead = len(tok(render(""), add_special_tokens=False)["input_ids"])
     budget = max(cfg.max_input_tokens - overhead, 8)
@@ -475,4 +523,5 @@ def transformers_scorer(cfg: LLMConfig) -> Scorer:
         return np.asarray(probs, dtype=np.float64)
 
     score.last_truncated = 0  # type: ignore[attr-defined]
+    score.system_prompt = system_prompt  # type: ignore[attr-defined]
     return score
