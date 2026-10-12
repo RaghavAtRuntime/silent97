@@ -622,3 +622,28 @@ might do better; that is a prompt change, so it is listed as open question 2.
 2. **LLM prompt for dispute.** Keep the NPS-category prompt (consistent with the simulator
    framing; result reported as is), or add a dispute-specific prompt version for E6? The
    second would be another rescoring run of about 12.6 hours.
+
+### Follow-up (2026-10-12): release published; how predictable is disputing at all?
+
+- **Release `labels-v1`** is published. Its asset digest equals the pinned SHA-256. Because the
+  repository is private, the unauthenticated download in `make fetch-labels` returns 404; it
+  works once the repository is public (or with token support, if wanted).
+- **Ceiling check on the outcome.** This is a diagnostic only, on the labeler-training split
+  (32,801 complaints; the evaluation pool was not touched). LightGBM on metadata, evaluated
+  on a held-out half of that split. ρ with disputing:
+
+  | features | ρ |
+  |---|---|
+  | product, issue, state (current tabular labeler) | 0.063 |
+  | + sub-product, sub-issue | 0.078 |
+  | company response alone | 0.120 |
+  | product, issue, state, company response, timely, channel, company | 0.134 |
+  | all of the above + public response, tags | 0.156 |
+
+  Even with every pre-dispute field in the export, ρ stays below 0.2. The company's response
+  is the strongest single signal (24% of complaints closed "with explanation" were disputed,
+  against 12% of those closed with relief). Disputing is close to unpredictable from the
+  public data, so **no labeler can make E6 show a large efficiency gain**; theory caps it near
+  1/(1 − 0.2²) ≈ 1.04×. A dispute-specific LLM prompt is therefore not worth another 12.6 h
+  scoring run. The CFPB benchmark's value is validity under a real, weak model, and showing
+  the naive-LLM trap.
