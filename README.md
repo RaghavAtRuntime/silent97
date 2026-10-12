@@ -4,7 +4,7 @@ Estimate customer satisfaction (NPS) for a whole customer base from a small surv
 model predictions on everyone else, with confidence intervals that are valid and
 verified by simulation.
 
-**Status:** Phase 1 (foundations and simulator). See `docs/PLAN.md` for the
+**Status:** Phase 3 (labelers and the CFPB benchmark). See `docs/PLAN.md` for the
 specification and `docs/progress/` for phase notes.
 
 ## Quickstart
@@ -18,4 +18,14 @@ uv run python -m silent97.data.simulate --config configs/simulate.yaml
 
 The last command writes a synthetic population of 200,000 customers to
 `data/processed/sim/` as Parquet, with a JSON manifest of every parameter.
-All data in this repository is synthetic.
+
+## Reproducing the results
+
+```bash
+make cfpb                  # public CFPB complaints (CC0 mirror, SHA-256 pinned, cross-checked)
+make fetch-labels          # cached LLM scores and embeddings from the labels-v1 release
+make reproduce             # simulator, E1, E2 and E6 results and figures
+```
+
+The simulator data is synthetic. The real-text benchmark uses public CFPB complaint
+data only; the LLM labeler runs locally and nothing is sent to an external API.

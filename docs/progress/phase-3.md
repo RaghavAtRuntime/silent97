@@ -526,3 +526,99 @@ clean clone has to rebuild them (G5 will need to account for this).
    I note it for `docs/ideas.md` only if you want it.
 
 Phase 3 stops here for review.
+
+---
+
+## Update, session 2 (continued, 2026-10-12): stronger LLM and release download
+
+Reviewer decisions: the label cache is distributed as a GitHub release download, and
+the LLM labeler should use the strongest model that runs comfortably on a Mac M1.
+
+### Model choice: `Qwen/Qwen3.5-4B` (revision `851bf6e8…`, Apache-2.0)
+
+- **Constraint.** A 16 GB M1 runs PyTorch on `mps` in bf16, so about 4–5B parameters is the
+  comfortable limit (8–9 GB of weights). The 8–9B candidates (Qwen3.5-9B, Gemma-4-E4B at
+  8B stored parameters, Granite-4.1-8B, Olmo-3-7B) need 16–19 GB in bf16. Gated or
+  non-Apache models (Llama 3.2, the Gemma 3 family, Qwen2.5-3B) were excluded, because
+  downloading them needs a login or they carry restrictive licenses.
+- **Candidates checked** on 8 complaints from the labeler-training split. The evaluation
+  pool was not used for selection.
+  - Qwen3.5-4B (Feb 2026, the newest generation at this size) gave graded probabilities,
+    with about 99% of next-token mass on A/B/C once thinking is off.
+  - Qwen3-4B-Instruct-2507 put probability 1.000 on "detractor" for all 8 complaints. That
+    saturates the readout, so PPI would get no ranking information from it.
+- **Code changes** (`labelers/llm.py`, tests first):
+  1. `render_prompt` passes `enable_thinking=False`; otherwise Qwen3.5's next token is
+     `<think>`.
+  2. `weights_dtype`: linear weights are stored in bf16 and each layer computes in float32
+     (`upcast_linears`). This x86 CPU has no native bf16: a bf16 matmul runs at 116 GFLOP/s
+     against 491 for float32, while a float32 copy (17 GB) does not fit in 15 GB of RAM. On a
+     Mac, the config comment says to use `device: mps`, `dtype: bfloat16`.
+  3. Batches are sorted by text length, so less compute goes to padding.
+  4. New tests: length-sorted batching maps results back correctly; dtype validation;
+     thinking is disabled in the rendered prompt; `upcast_linears` equals a float32 model with
+     the same weights; and on a **tiny random Qwen3.5-style hybrid model** (linear-attention
+     plus full-attention layers), left padding does not change any score, and upcast equals
+     float32. On the real Qwen3.5-4B, batched scores matched one-at-a-time scores to
+     6.7e-7 on 4 complaints.
+- `configs/llm.yaml`: model, revision, `weights_dtype: bfloat16`, `tokens_per_second: 32`
+  (measured). `max_items` was raised to 10,000, because the cap is cumulative over the cache and
+  the Qwen2.5-0.5B run already used 4,992.
+
+### Scoring run
+
+- 4,992 complaints scored (8 duplicate texts), **0 invalid**, $0, CPU only. The wall-clock was
+  about 12.6 h of scoring, in seven chunks.
+- The first attempt ran as a detached process and died when the container was reclaimed
+  while the session was idle (after 72 items, which stayed cached). The rest ran as tracked
+  background chunks of under 2 h each, resuming from the cache. Per-chunk logs are in the
+  session; the ledger has one line per scored item.
+
+### E6 with Qwen3.5-4B (`docs/results/e06_cfpb_*`, 1,000 replicates, same seed and pool)
+
+The tabular and embedding results are byte-identical to the previous run. LLM rows:
+
+| | Qwen2.5-0.5B (before) | Qwen3.5-4B (now) |
+|---|---|---|
+| ρ with disputing | −0.083 | **0.041** |
+| mean P(detractor) vs true rate 21.3% | 73.8% | 81.8% (naive-model bias +60.5 points) |
+| effective n at n = 1,000: PPI / PPI++ / cross-fit | 880 / 1,006 / 852 | 883 / 1,002 / 852 |
+| PPI++ mean λ̂ | −0.33 → −0.25 | 0.10 → 0.09 |
+| coverage cells in A1 band (of 20 valid) | 19 | **20** |
+
+All valid cells: **58 of 60** in the A1 band. The two misses (tabular classical 0.940 and
+tabular PPI 0.938, both at n = 1,000) are the finite-pool over-coverage predicted above.
+
+**The stronger model does not help on this task.** Its correlation with disputing is
+0.041, which is effectively zero; PPI++ correctly gives it almost no weight (λ̂ ≈ 0.1), so
+the interval matches classical. Plain PPI loses 12% efficiency. My reading is that this is a
+*task mismatch*, not a weak model. The zero-shot prompt asks whether the writer is a
+detractor, passive or promoter, and almost every complaint is a detractor by that
+standard. Whether the consumer later *disputes the company's response* depends on that
+response, which the labeler does not see by design (`LABELER_FEATURES`). The supervised
+embedding labeler, trained on dispute labels, reaches ρ = 0.18. A dispute-specific prompt
+might do better; that is a prompt change, so it is listed as open question 2.
+
+### Release download
+
+- `labelers/cache.py`:
+  - `pack` writes a deterministic `.tar.gz` (sorted members, zeroed times and owners, no
+    gzip filename). Packing twice gives the same SHA-256.
+  - `unpack` verifies the SHA-256 and rejects unsafe paths. It skips identical files and
+    refuses to overwrite a differing one.
+  - `fetch` downloads the archive named in `configs/labels.yaml` once.
+- Makefile targets: `pack-labels` and `fetch-labels`. The README has the reproduce steps
+  (`make cfpb`, `make fetch-labels`, `make reproduce`).
+- **Archive `silent97-labels.tar.gz`:** 54,973,418 bytes, SHA-256
+  `c35fa9b3816fe9ed272108e7bc8ff5f9282aab6fc8bdb16aef9be0f516e8b2ec`. It holds all 9,987
+  cache files: both LLMs' scores, the ledger and the two embedding matrices. Unpacking it
+  into an empty directory reproduces `cache/` exactly (`diff -r`).
+- **Not yet published.** I cannot create releases from this environment. The
+  owner creates release `labels-v1` and uploads the file; then `make fetch-labels` works.
+
+### Open questions
+
+1. **Release upload** (above). After it, I will verify `make fetch-labels` against the live URL.
+2. **LLM prompt for dispute.** Keep the NPS-category prompt (consistent with the simulator
+   framing; result reported as is), or add a dispute-specific prompt version for E6? The
+   second would be another rescoring run of about 12.6 hours.

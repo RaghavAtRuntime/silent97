@@ -1,7 +1,7 @@
 {
   "device": "cpu",
   "dry_run": false,
-  "model": "Qwen/Qwen2.5-0.5B-Instruct@7ae557604adf67be50417f59c2c2f167def9a775",
+  "model": "Qwen/Qwen3.5-4B@851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
   "n_failed": 0,
   "n_scored": 0,
   "plan": {
@@ -10,8 +10,8 @@
     "n_to_score": 0,
     "projected_seconds": 0.0,
     "projected_tokens": 0.0,
-    "scored_before": 4992
+    "scored_before": 9984
   },
-  "seconds": 7.325999831664376e-06,
+  "seconds": 8.162998710758984e-06,
   "spent_usd": 0.0
 }

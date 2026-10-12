@@ -110,3 +110,9 @@ def test_fetch_requires_a_published_release(tmp_path: Path) -> None:
     cfg.write_text("url: null\nsha256: null\n")
     with pytest.raises(ValueError, match="not published"):
         cache_mod.fetch(cfg, cache_dir=tmp_path / "c", download_dir=tmp_path / "d")
+
+
+def test_repo_labels_config_is_pinned() -> None:
+    raw = cache_mod.load_release_config(Path("configs/labels.yaml"))
+    assert raw["url"].startswith("https://github.com/RaghavAtRuntime/silent97/releases/download/")
+    assert len(raw["sha256"]) == 64

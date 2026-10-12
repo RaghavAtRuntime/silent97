@@ -1,0 +1,5 @@
+# The label cache behind the published results (LLM scores and text embeddings), as a
+# GitHub release asset. `make fetch-labels` downloads it once, checks the SHA-256 and
+# unpacks it into cache/. Built with `make pack-labels` (deterministic archive).
+url: https://github.com/RaghavAtRuntime/silent97/releases/download/labels-v1/silent97-labels.tar.gz
+sha256: c35fa9b3816fe9ed272108e7bc8ff5f9282aab6fc8bdb16aef9be0f516e8b2ec
