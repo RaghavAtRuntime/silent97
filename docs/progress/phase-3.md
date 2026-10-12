@@ -647,3 +647,94 @@ might do better; that is a prompt change, so it is listed as open question 2.
   1/(1 − 0.2²) ≈ 1.04×. A dispute-specific LLM prompt is therefore not worth another 12.6 h
   scoring run. The CFPB benchmark's value is validity under a real, weak model, and showing
   the naive-LLM trap.
+
+---
+
+## Session 3 (2026-10-12): making the results useful (reviewer: "do 1, 2 and 3")
+
+Reviewer decisions:
+1. Reframe the CFPB benchmark (validity under weak models, plus the model-only trap).
+2. Build a planning tool that estimates ρ from past surveys and turns it into survey sizes.
+3. Add a real-text benchmark with a real satisfaction rating. Academic-use data is allowed
+   (the owner has university credentials), and Amazon Reviews 2023 is approved.
+
+### 1. CFPB reframed (no new compute)
+
+- `docs/PLAN.md` E6 now describes two benchmarks:
+  - **(a) CFPB:** validity under weak models plus the model-only trap. Disputing is nearly
+    unpredictable from public data: ρ < 0.2 even from every metadata field.
+  - **(b) Amazon reviews:** the gains on real text.
+- New figure `docs/results/e06_cfpb_trap.png` (`viz.figures.trap_figure`): at n = 200, the
+  average model-only interval against the truth, beside classical and PPI++.
+  - The LLM-only estimate is 81.8% against a true 21.3%, with 0% coverage.
+  - Even the supervised embedding and tabular labelers, whose model-only estimates land
+    within about 1 point of the truth, get 0% coverage, because those intervals ignore
+    model error.
+  - Classical and PPI++ cover 89–91%.
+- Rerunning E6 on CFPB reproduced the summary CSV byte for byte. It added the planning check
+  below to `e06_cfpb_summary.md`.
+
+### 2. Survey planning tool (`src/silent97/eval/planning.py`, tests first, 8 tests)
+
+- `estimate_rho(y, p, rng=...)`: ρ = corr(actual NPS value, predicted NPS value), with a
+  percentile bootstrap interval. It is the same quantity as the harness's `model_correlation`.
+  A test checks the interval's coverage across 40 resampled datasets (at least 34 of 40 at
+  nominal 95%).
+- `gain(ρ, n, N)` = 1 / (1 − ρ²/(1 + n/N)), the curve E2 validated (A3).
+  `required_n(margin, sd, ρ, N)` gives the smallest n whose interval half-width is at most
+  the margin; it is exact, by bisection on the half-width formula. `planning_table` and
+  `report` produce planning tables at the low, point and high values of ρ.
+- CLI: `python -m silent97.eval.planning table`, and `estimate --data past.parquet --big-n N`
+  for a team's own past responses with model scores. `make planning` writes
+  `docs/results/planning_table.md` (NPS value sd 80, which fits NPS ≈ +20; N = 1 M; 90%
+  intervals). For a ±5-point margin, a survey needs:
+
+  | ρ | classical n | PPI++ n | saved |
+  |---|---|---|---|
+  | 0.5 | 693 | 520 | 25% |
+  | 0.6 | 693 | 444 | 36% |
+  | 0.7 | 693 | 354 | 49% |
+  | 0.8 | 693 | 250 | 64% |
+  | 0.9 | 693 | 132 | 81% |
+
+- **Caveats in the docstring:** predictions must be out of sample for the past respondents;
+  past respondents are self-selected, so plan with the low end of ρ's interval; gains below
+  about 1.05 are noise-level at small n.
+- **Predicted vs realized check** (`planning.compare_with_results`), added to both E6
+  summaries. On CFPB it matches closely. At n = 1,000, for example: embedding predicted
+  1.026, realized 1.027; tabular 1.004 vs 1.005; LLM 1.001 vs 1.002. At n = 50 the realized
+  gain runs about 1–2 points above the prediction; that is the small-sample optimism of the
+  in-sample λ̂ seen in E2. ρ estimated from one sample of 300 "past" responses lands near the
+  pool value, with intervals of about ±0.12: embedding 0.160 [0.042, 0.277] against a pool
+  value of 0.179.
+
+### 3. Amazon gift-card reviews (`src/silent97/data/amazon.py`, `experiments/e06_amazon.py`)
+
+- **Data:** McAuley Lab, Amazon Reviews 2023, category Gift_Cards. One file, 50.2 MB,
+  SHA-256 `b7ceead0…544e` (pinned). It has 152,410 reviews; 1,421 exact duplicates of (user,
+  product, timestamp) are dropped, leaving **150,989**. Gift cards were chosen as the
+  stored-value, consumer-finance-adjacent category.
+- **Outcome:** score = 2 × stars, so 5 stars is a promoter, 4 passive and 1–3 detractor.
+  **True NPS +72.75** on the full data. Unlike CFPB, the full two-dimensional NPS
+  estimators run on real text and a real satisfaction answer.
+- **Labelers:**
+  - tabular: metadata only (verified purchase, images, any helpful vote, year, length band);
+  - embedding: MiniLM plus logistic regression on title and text;
+  - LLM: Qwen3.5-4B with a review-specific prompt.
+  The rating never reaches a labeler (`assert_labeler_columns`).
+- **LLM prompts per source:** `SYSTEM_PROMPTS` maps each source to its prompt, and the review
+  prompt does not mention complaints. The cache key uses the item's own prompt version. The
+  CFPB keys are unchanged; 5,000 of 5,000 are still cache hits after the change. A scorer
+  built for one prompt cannot score items from another source (guard plus tests).
+- **Design** as in the CFPB benchmark: a 20% training split, then a pool of **10,000**
+  reviews from the rest, with the truth being the pool's NPS. The larger pool keeps the
+  finite-pool over-coverage at n = 1,000 near 91.7%, inside the band. Seed 20261015; 1,000
+  replicates; n from 50 to 1,000.
+- **LLM scoring:**
+  - The dry run reported 10,000 items, of which 9,489 are unique texts; projected 12.9 h.
+  - Measured about 3 s per item for the shortest reviews and 4.6 s on a typical sample.
+  - It runs as `experiments/e06_amazon.py --score-only` in tracked chunks of under 2 h.
+  - The item cap is now 20,000 cumulative (9,984 used by the two CFPB runs).
+- Status: scoring is in progress; E6 (reviews) runs when it finishes.
+
+`make test`: 1,345+ fast tests pass; `make lint` is clean.
