@@ -61,12 +61,12 @@ silent97/
 │   └── progress/phase-N.md   your phase plans and results notes
 ├── src/silent97/
 │   ├── types.py              Estimate, Design
-│   ├── data/                 simulate.py, cfpb.py, schema.py
+│   ├── data/                 simulate.py, cfpb.py, amazon.py, schema.py
 │   ├── labelers/             base.py, tabular.py, embedding.py, llm.py, cache.py
 │   ├── sampling/             designs.py
 │   ├── estimators/           nps.py, classical.py, ppi.py, active.py,
 │   │                         stratified.py, mrp.py, sensitivity.py
-│   ├── eval/                 harness.py, metrics.py
+│   ├── eval/                 harness.py, metrics.py, planning.py
 │   └── viz/                  figures.py
 ├── experiments/              e01_coverage.py … e08_power.py
 ├── demo/                     index.html, app.js, data/grid.json
@@ -174,8 +174,9 @@ At the start of each phase, write `docs/progress/phase-N.md` with a short plan (
 ### Phase 3: Labelers and real text (weekend 5)
 - `labelers/base.py` (interface returning calibrated (n, 2) probabilities), `tabular.py` (LightGBM multiclass + isotonic calibration), `embedding.py` (sentence embeddings + logistic regression), `llm.py` (local open-weight model; zero-shot probabilities for detractor / passive / promoter from its answer-option token probabilities), `cache.py` (disk cache keyed by hash of model, prompt version and input).
 - `data/cfpb.py`: download the public CFPB complaint export, keep 2015 to April 2017 complaints with a narrative and a "Consumer disputed?" value; outcome = disputed. Labelers see narrative, product, issue and state only.
-- `experiments/e02_model_quality.py`, `experiments/e06_cfpb.py`.
-- LLM rules: dry-run mode that prints item count and projected compute before any scoring; hard cap on items from config; never re-score a cached key; only public CFPB or synthetic text as input. The model runs locally; nothing is sent to an external API.
+- `data/amazon.py` (Amazon Reviews 2023, Gift Cards; score = 2 × stars), `eval/planning.py` (ρ from past responses → survey sizes).
+- `experiments/e02_model_quality.py`, `experiments/e06_cfpb.py`, `experiments/e06_amazon.py`.
+- LLM rules: dry-run mode that prints item count and projected compute before any scoring; hard cap on items from config; never re-score a cached key; only public CFPB, Amazon Reviews 2023 (owner-approved, research use) or synthetic text as input. The model runs locally; nothing is sent to an external API.
 - **Gate G3:** all labels cached; LLM compute and item count reported; E6 coverage reported for each labeler.
 
 ### Phase 4: Active sampling, MRP, sensitivity (weekend 6)
@@ -197,7 +198,7 @@ At the start of each phase, write `docs/progress/phase-N.md` with a short plan (
 
 - **No TD Bank data, documents, screenshots, customer information or branding** in the repo, prompts, caches, commits or demo. Do not mention TD in code, comments, the README or the demo. The memo may describe "a large bank" generically.
 - No scraping of app stores, social media, or anything behind a login or against a site's terms.
-- Only public CFPB data or synthetic data may be sent to any external API.
+- Only public CFPB data or synthetic data may be sent to any external API. Amazon Reviews 2023 (research use, approved by the owner) is used locally only.
 - Secrets come from `.env` (git-ignored). Never print, log or commit keys. Add a pre-commit secret scanner.
 - `data/` and `cache/` are git-ignored. Do not commit raw data.
 

@@ -101,6 +101,7 @@ Validity claims rest on the simulator, because only simulated data has a known t
 | --- | --- | --- | --- |
 | Synthetic customer simulator | Primary benchmark for coverage, width and bias | Exact, by construction | Fully controllable: population size, segment mix, model quality, nonresponse mechanism |
 | [CFPB Consumer Complaint Database](https://www.consumerfinance.gov/data-research/consumer-complaints/) | Semi-synthetic real-text benchmark | The "Consumer disputed?" field (collected until April 2017) as a binary dissatisfaction outcome | Public US government data; includes credit card, bank account and investment products |
+| [Amazon Reviews 2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023), Gift Cards (Hou et al., arXiv 2403.03952) | Real-text benchmark with a real satisfaction answer | The customer's own 1–5 star rating, mapped to NPS as score = 2 × stars (5 promoter, 4 passive, 1–3 detractor) | Research-use dataset (owner approved, academic use); file pinned by SHA-256; labelers see title and text only |
 | LLM-generated verbatims (optional) | Free text for simulated customers | Inherited from simulator | Generated conditional on latent satisfaction; flagged as synthetic everywhere |
 
 **Simulator design**
@@ -122,7 +123,8 @@ Validity claims rest on the simulator, because only simulated data has a known t
 
 - No TD data, internal documents, screenshots or customer information, in any form.
 - No scraping of app stores, social media or anything behind a login or against a site's terms.
-- Only public data is ever sent to an LLM API.
+- Only public data is ever sent to an LLM API. (The LLM labeler runs locally, so nothing is sent at all.)
+- Research-use datasets (Amazon Reviews 2023) are used under their terms, for this academic project only.
 - No TD logos or branding in the repo or demo. Before publishing, check TD's code of conduct on outside work and on naming your employer.
 
 ## Architecture and repo layout
@@ -149,12 +151,12 @@ silent97/
 │   └── progress/phase-N.md   phase plans and results notes
 ├── src/silent97/
 │   ├── types.py              Estimate, Design
-│   ├── data/                 simulate.py, cfpb.py, schema.py
+│   ├── data/                 simulate.py, cfpb.py, amazon.py, schema.py
 │   ├── labelers/             base.py, tabular.py, embedding.py, llm.py, cache.py
 │   ├── sampling/             designs.py
 │   ├── estimators/           nps.py, classical.py, ppi.py, active.py,
 │   │                         stratified.py, mrp.py, sensitivity.py
-│   ├── eval/                 harness.py, metrics.py
+│   ├── eval/                 harness.py, metrics.py, planning.py
 │   └── viz/                  figures.py
 ├── experiments/              e01_coverage.py … e08_power.py
 ├── demo/                     index.html, app.js, data/grid.json
@@ -216,6 +218,10 @@ def estimate(y_lab, f_lab, f_unlab, *, alpha=0.1, weights=None, **kw) -> Estimat
 - `EmbeddingLabeler`: sentence-embedding model plus logistic regression, for text.
 - `LLMLabeler`: a lightweight open-weight instruction model run locally (default `Qwen/Qwen2.5-0.5B-Instruct` on CPU via `transformers`); zero-shot prompt whose next-token probabilities over the three answer options give the class probabilities. All scores are cached to disk keyed by a hash of (model, prompt version, input), so experiments never re-score. Hard cap on items set in config; no external API and no spend.
 
+**Survey planning** (`eval/planning.py`)
+
+- PPI++'s gain is set by one number, the correlation ρ between predicted and actual NPS values: one response is worth 1 / (1 − ρ²/(1 + n/N)) classical responses (checked in E2, A3). A team can estimate ρ from past survey responses plus out-of-sample model predictions, with a bootstrap interval, and read off the responses needed for a target margin before changing any survey (`make planning` writes the ρ × margin table).
+
 **Sensitivity analysis** (`estimators/sensitivity.py`)
 
 - Delta-adjustment: assume non-respondents' promoter and detractor rates differ from model-corrected respondents by up to δ percentage points. Report the NPS range as δ grows, and the breakpoint δ\* at which a conclusion (e.g. "NPS rose this quarter") flips.
@@ -253,7 +259,7 @@ Each experiment is a script in `experiments/` that reads a YAML config, runs see
 | E3 | Does active sampling help at a fixed budget? | Simulator, uniform vs stratified vs active at equal n |
 | E4 | What happens under realistic nonresponse? | Simulator, MAR and MNAR; naive vs PPI++ vs MRP vs MRP+PPI |
 | E5 | Can we report thin segments? | Simulator, 60 segments, cell sizes 5 to 200; RMSE and coverage by cell size |
-| E6 | Does it work on real text? | CFPB dispute benchmark with tabular, embedding and LLM labelers |
+| E6 | Does it work on real text? | (a) CFPB dispute benchmark with tabular, embedding and LLM labelers: disputing is nearly unpredictable from public data (ρ < 0.2 even from all metadata), so this shows validity under weak models and the model-only trap. (b) Amazon gift-card reviews with real star ratings: the full NPS estimators on real text where text does predict satisfaction. Both report predicted vs realized gain |
 | E7 | How fragile is a conclusion? | Sensitivity curves and breakpoint δ\* on E4 and E6 |
 | E8 | Can we detect a nudge's effect sooner? | Simulator A/B test with a true +5 NPS lift; power vs n for classical vs PPI++ difference-in-means |
 
