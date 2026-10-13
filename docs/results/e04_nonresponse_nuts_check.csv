@@ -1,0 +1,3 @@
+scenario,n_labeled,estimator,replicates,mean_d_point,max_abs_d_point,max_abs_d_lower,max_abs_d_upper,mean_se_ratio,same_coverage_call
+mar,500,mrp,20,0.030140,0.110046,0.109061,0.174877,1.019665,1.000000
+mar,500,mrp_ppi,20,-0.014659,0.089033,0.148681,0.095999,1.017970,1.000000

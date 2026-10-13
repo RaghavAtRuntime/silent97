@@ -214,7 +214,22 @@ How to read this:
 
 ### NUTS vs Laplace (rule 7)
 
-NUTS_PLACEHOLDER
+**Agreement on E4 replicates** (`docs/results/e04_nonresponse_nuts_check.csv`): MAR,
+n = 500, the first 20 replicates, fitted both ways with the fixed MRP.
+
+- **Convergence.** Every NUTS fit passed R-hat ≤ 1.01 and bulk ESS ≥ 400; the fit
+  raises otherwise. Settings: 4 chains, 1,000 tune, 2,000 draws, target_accept 0.95.
+- **Points.** NUTS − Laplace point: mean +0.03 (`mrp`) and −0.01 (`mrp_ppi`) NPS
+  points, max |Δ| 0.11 and 0.09. That is about 0.03 se, since se ≈ 3.2.
+- **Bounds.** Interval bounds differ by at most 0.17 points.
+- **se.** NUTS se / Laplace se = 1.020 and 1.018. NUTS also integrates over the σ
+  uncertainty that the Laplace plug-in ignores, and the difference is about 2%.
+- **Coverage calls.** The two make the same coverage call in 20 / 20 replicates for
+  both estimators.
+- **Cost.** About 80 s per NUTS fit, against about 0.3 s for Laplace; 115 min for the
+  40 fits. This is why the sweeps use Laplace.
+- **Unit-test check.** The slow unit test (800 respondents, synthetic cells) also
+  passes: |Δpoint| < 0.5 se and se within 20%.
 
 ### Changes after review and flagged items
 
