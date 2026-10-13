@@ -3,7 +3,10 @@
 All estimators share the signature ``f(y_lab, p_lab, p_unlab, *, alpha=0.1, **kw)``
 and return a :class:`silent97.types.Estimate`. ``ppi_crossfit`` expects
 ``p_unlab`` of shape (N, K, 2) from :func:`silent97.estimators.ppi.cross_fit`.
-``ppi_pp_cf`` also needs ``rng`` (or ``folds``) for its fold split.
+``ppi_pp_cf`` also needs ``rng`` (or ``folds``) for its fold split. The design-based
+estimators take ``pi_lab`` or strata, and ``mrp`` / ``mrp_ppi`` take respondents' cells
+and a :class:`silent97.estimators.mrp.CellFrame` instead of predictions (CLAUDE.md
+section 5: "MRP takes covariate frames").
 """
 
 from collections.abc import Callable
@@ -11,11 +14,12 @@ from typing import Final
 
 from silent97.estimators import active as _active
 from silent97.estimators import classical as _classical
+from silent97.estimators import mrp as _mrp
 from silent97.estimators import ppi as _ppi
 from silent97.estimators import stratified as _stratified
 from silent97.types import Estimate
 
-__all__ = ["DESIGN_BASED", "REGISTRY", "VALID_UNDER_MCAR"]
+__all__ = ["DESIGN_BASED", "MODEL_BASED", "REGISTRY", "VALID_UNDER_MCAR"]
 
 REGISTRY: Final[dict[str, Callable[..., Estimate]]] = {
     "classical": _classical.classical,
@@ -26,10 +30,15 @@ REGISTRY: Final[dict[str, Callable[..., Estimate]]] = {
     "ppi_crossfit": _ppi.ppi_crossfit,
     "ppi_active": _active.ppi_active,
     "ppi_stratified": _stratified.ppi_stratified,
+    "mrp": _mrp.mrp,
+    "mrp_ppi": _mrp.mrp_ppi,
 }
 
 DESIGN_BASED: Final = frozenset({"ppi_active", "ppi_stratified"})
 """Estimators valid under their own sampling design (they need pi or strata)."""
+
+MODEL_BASED: Final = frozenset({"mrp", "mrp_ppi"})
+"""Model-based estimators: valid under MAR given their cells if the model fits."""
 
 VALID_UNDER_MCAR: Final = frozenset({"classical", "ppi", "ppi_pp", "ppi_pp_cf", "ppi_crossfit"})
 """Estimators whose intervals are valid when the labeled set is a random sample."""

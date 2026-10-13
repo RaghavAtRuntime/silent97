@@ -51,6 +51,8 @@ ESTIMATOR_STYLE: Final[dict[str, dict[str, Any]]] = {
     "ppi_pp_cf": {"color": "#7a5cc9", "marker": "s", "label": "PPI++ (cross-fit λ)"},
     "ppi_active": {"color": "#0f8a8a", "marker": "P", "label": "active PPI (1/π)"},
     "ppi_stratified": {"color": "#8a5a2b", "marker": "h", "label": "stratified PPI"},
+    "mrp": {"color": "#c0392b", "marker": "*", "label": "MRP"},
+    "mrp_ppi": {"color": "#5b6b7a", "marker": "p", "label": "MRP + predictions"},
 }
 
 

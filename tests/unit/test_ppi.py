@@ -364,7 +364,10 @@ def test_registry() -> None:
         "ppi_crossfit",
         "ppi_active",
         "ppi_stratified",
+        "mrp",
+        "mrp_ppi",
     }
+    assert frozenset({"mrp", "mrp_ppi"}) == estimators.MODEL_BASED
     assert frozenset({"ppi_active", "ppi_stratified"}) == estimators.DESIGN_BASED
     assert (
         frozenset({"classical", "ppi", "ppi_pp", "ppi_pp_cf", "ppi_crossfit"})

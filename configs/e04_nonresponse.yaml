@@ -1,0 +1,20 @@
+# E4: what happens under realistic nonresponse? (docs/PLAN.md, Experiments)
+# Simulator, self-selected respondents under MAR and MNAR. The labeler is trained on an
+# earlier uniform sample (train_mechanism: mcar).
+name: e04_nonresponse
+seed: 20261018
+population:
+  n_customers: 200000
+  target_nps: 20.0
+labeler:
+  n_train: 5000
+scenarios:
+  - {name: mar, mechanism: mar, signal_strength: 0.6}
+  - {name: mnar, mechanism: mnar, signal_strength: 0.6}
+estimators: [classical, naive_model, ppi_pp_cf, mrp, mrp_ppi]
+n_labeled: [200, 500, 1000]
+replicates: 1000
+alpha: 0.1
+crossfit_folds: 10
+n_jobs: 4
+mrp_fit: laplace

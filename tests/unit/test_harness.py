@@ -359,3 +359,49 @@ def test_scenario_estimators_must_be_configured() -> None:
                 ],
             }
         )
+
+
+# --------------------------------------------------------------------------- MRP
+
+
+MRP_GRID = {
+    **SMALL,
+    "name": "mrp_grid",
+    "scenarios": [{"name": "mar", "mechanism": "mar"}],
+    "estimators": ["classical", "ppi", "mrp", "mrp_ppi"],
+    "n_labeled": [150],
+    "replicates": 3,
+}
+
+
+def test_prepared_cells() -> None:
+    cfg = harness.GridConfig.from_dict(MRP_GRID)
+    prep = harness.prepare_scenario(cfg, 0)
+    assert prep.cells is not None and prep.cell is not None and prep.x_cell is not None
+    assert prep.cells.factor_names == ("province", "age", "tenure", "segment")
+    assert prep.cells.pop_count.sum() == prep.pool.size
+    assert (prep.cell[prep.pool] >= 0).all()
+    assert prep.x_cell.shape == (prep.cells.n_cells, 2)
+    # Each cell's segment equals province * 6 + age.
+    f = prep.cells.factors
+    assert (f[:, 3] == f[:, 0] * 6 + f[:, 1]).all()
+    assert (prep.cells.segment == f[:, 3]).all()
+
+
+def test_mrp_rows_and_own_stream() -> None:
+    cfg = harness.GridConfig.from_dict(MRP_GRID)
+    res = harness.run_grid(cfg)
+    assert set(res["estimator"]) == {"classical", "ppi", "mrp", "mrp_ppi"}
+    m = res.filter(pl.col("estimator").is_in(["mrp", "mrp_ppi"]))
+    assert m["point"].is_finite().all() and (m["upper"] > m["lower"]).all()
+    base = harness.run_grid(
+        harness.GridConfig.from_dict({**MRP_GRID, "estimators": ["classical", "ppi"]})
+    )
+    keys = ["scenario", "n_labeled", "replicate", "estimator"]
+    others = res.filter(pl.col("estimator").is_in(["classical", "ppi"])).sort(keys)
+    assert others.select(base.columns).equals(base.sort(keys))
+
+
+def test_mrp_fit_setting_is_validated() -> None:
+    with pytest.raises(ValueError, match="mrp_fit"):
+        harness.GridConfig.from_dict({**MRP_GRID, "mrp_fit": "vi"})

@@ -45,7 +45,14 @@ from numpy.typing import ArrayLike, NDArray
 
 from silent97 import estimators, sampling
 from silent97.data import schema
-from silent97.data.simulate import SimConfig, simulate_population
+from silent97.data.simulate import (
+    AGE_BANDS,
+    PROVINCES,
+    TENURE_BANDS,
+    SimConfig,
+    simulate_population,
+)
+from silent97.estimators import mrp as mrp_mod
 from silent97.estimators.active import ppi_active
 from silent97.estimators.ppi import cross_fit, ppi_crossfit, ppi_pp_cf
 from silent97.estimators.stratified import ppi_stratified
@@ -249,6 +256,8 @@ class GridConfig:
     labeler: LabelerConfig = LabelerConfig()
     crossfit_folds: int = 10
     n_jobs: int = 1
+    mrp_fit: str = "laplace"
+    """How ``mrp`` / ``mrp_ppi`` are fit: ``"laplace"`` (sweeps) or ``"nuts"`` (validation)."""
 
     def __post_init__(self) -> None:
         unknown = sorted(set(self.estimators) - set(estimators.REGISTRY))
@@ -267,6 +276,8 @@ class GridConfig:
             raise ValueError(f"alpha must lie in (0, 1), got {self.alpha}")
         if self.crossfit_folds < 2:
             raise ValueError(f"crossfit_folds must be >= 2, got {self.crossfit_folds}")
+        if self.mrp_fit not in mrp_mod.FITS:
+            raise ValueError(f"mrp_fit must be one of {mrp_mod.FITS}, got {self.mrp_fit!r}")
         for s in self.scenarios:
             if s.estimators is not None and not set(s.estimators) <= set(self.estimators):
                 extra = sorted(set(s.estimators) - set(self.estimators))
@@ -335,6 +346,12 @@ class PreparedScenario:
     """Correlation over the pool between predicted and true per-customer NPS values."""
     strata: NDArray[np.int64] | None = None
     """Stratum label for every customer (quantiles of the predicted NPS over the pool)."""
+    cell: NDArray[np.int64] | None = None
+    """MRP cell (province x age x tenure) of every customer; -1 outside the pool's cells."""
+    cells: mrp_mod.CellFrame | None = None
+    """MRP cells with the pool's population counts."""
+    x_cell: NDArray[np.float64] | None = None
+    """Per cell, the pool mean of the predicted promoter and detractor logits (mrp_ppi)."""
 
 
 def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
@@ -379,7 +396,45 @@ def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
         truth=float(value[pool].mean()),
         model_corr=model_correlation(p_all[pool], scores[pool]),
         strata=prediction_strata(p_all, pool, scenario.n_strata),
+        **mrp_cells(table, p_all, pool),
     )
+
+
+def _codes(table: Any, name: str) -> NDArray[np.int64]:
+    return np.asarray(table.column(name).combine_chunks().indices.to_numpy(), dtype=np.int64)
+
+
+def mrp_cells(table: Any, p_all: NDArray[np.float64], pool: NDArray[np.int64]) -> dict[str, Any]:
+    """MRP cells (province x age band x tenure band) with the pool's counts.
+
+    Cells without pool customers are dropped. The segment is province x age band (the
+    simulator's 60 segments). ``x_cell`` holds the pool mean of the predicted logits.
+    """
+    n_age, n_ten = len(AGE_BANDS), len(TENURE_BANDS)
+    prov, age, ten = (_codes(table, c) for c in ("province", "age_band", "tenure_band"))
+    key = (prov * n_age + age) * n_ten + ten
+    counts = np.bincount(key[pool], minlength=len(PROVINCES) * n_age * n_ten)
+    keep = np.flatnonzero(counts)
+    remap = np.full(counts.size, -1, dtype=np.int64)
+    remap[keep] = np.arange(keep.size)
+    k_prov, k_age, k_ten = keep // (n_age * n_ten), (keep // n_ten) % n_age, keep % n_ten
+    segment = k_prov * n_age + k_age
+    cells = mrp_mod.CellFrame(
+        factors=np.column_stack([k_prov, k_age, k_ten, segment]),
+        factor_names=("province", "age", "tenure", "segment"),
+        pop_count=counts[keep].astype(np.float64),
+        segment=segment,
+    )
+    cell = remap[key]
+    logit = np.log(np.clip(p_all, 1e-6, 1 - 1e-6)) - np.log1p(-np.clip(p_all, 1e-6, 1 - 1e-6))
+    pool_cell = cell[pool]
+    x_cell = (
+        np.column_stack(
+            [np.bincount(pool_cell, weights=logit[pool, j], minlength=keep.size) for j in range(2)]
+        )
+        / counts[keep][:, None]
+    )
+    return {"cell": cell, "cells": cells, "x_cell": x_cell}
 
 
 def prediction_strata(
@@ -464,6 +519,14 @@ def run_replicate(
             est = ppi_stratified(
                 y_lab, p_lab, p_unlab, strata_lab=prep.strata[lab],
                 strata_unlab=prep.strata[unlab_mask], alpha=cfg.alpha,
+            )  # fmt: skip
+        elif name in ("mrp", "mrp_ppi"):
+            assert prep.cells is not None and prep.cell is not None
+            mrp_rng = np.random.default_rng([cfg.seed, 4, scenario_index, n, replicate])
+            extra = {"x_cell": prep.x_cell} if name == "mrp_ppi" else {}
+            est = estimators.REGISTRY[name](
+                y_lab, prep.cell[lab], prep.cells, rng=mrp_rng, alpha=cfg.alpha,
+                fit=cfg.mrp_fit, **extra,
             )  # fmt: skip
         elif name == "ppi_pp_cf":
             # Its own stream, so adding it never changes the other estimators' draws.
