@@ -1,0 +1,17 @@
+# E5: can we report thin segments? (docs/PLAN.md, Experiments; criterion A5)
+# Simulator, uniform (MCAR) surveys of the pool. Segment = province x age band (60
+# segments); segment estimates (raw, PPI, MRP, MRP + predictions) are compared with the
+# segment's true pool NPS, grouped by respondents per segment.
+name: e05_segments
+seed: 20261019
+population:
+  n_customers: 200000
+  target_nps: 20.0
+labeler:
+  n_train: 5000
+signal_strength: 0.6
+n_labeled: [300, 1000, 3000]
+replicates: 500
+bins: [2, 5, 10, 20, 30, 50, 100, 1000]
+alpha: 0.1
+n_jobs: 4

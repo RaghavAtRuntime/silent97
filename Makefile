@@ -1,4 +1,4 @@
-.PHONY: setup test test-slow lint format coverage reproduce demo simulate e01 e02 e03 e04 e06 e06a cfpb amazon planning fetch-labels pack-labels
+.PHONY: setup test test-slow lint format coverage reproduce demo simulate e01 e02 e03 e04 e05 e06 e06a cfpb amazon planning fetch-labels pack-labels
 
 UV ?= uv
 
@@ -35,6 +35,9 @@ e03:
 
 e04:
 	$(UV) run python experiments/e04_nonresponse.py --config configs/e04_nonresponse.yaml
+
+e05:
+	$(UV) run python experiments/e05_segments.py --config configs/e05_segments.yaml
 
 e02:
 	$(UV) run python experiments/e02_model_quality.py --config configs/e02_model_quality.yaml
@@ -74,7 +77,7 @@ planning:
 
 # Every experiment result and figure. Experiments are added as their phases land.
 # E6 needs the data (`make cfpb amazon`) and the cached labels (`make fetch-labels`).
-reproduce: simulate e01 e02 e03 e04 e06 e06a planning
+reproduce: simulate e01 e02 e03 e04 e05 e06 e06a planning
 
 # The demo is built in Phase 5.
 demo:

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Final
 
 import matplotlib
+import numpy as np
 
 matplotlib.use("Agg")
 
@@ -31,6 +32,7 @@ __all__ = [
     "coverage_figure",
     "design_figure",
     "efficiency_figure",
+    "segment_figure",
     "trap_figure",
 ]
 
@@ -53,6 +55,14 @@ ESTIMATOR_STYLE: Final[dict[str, dict[str, Any]]] = {
     "ppi_stratified": {"color": "#8a5a2b", "marker": "h", "label": "stratified PPI"},
     "mrp": {"color": "#c0392b", "marker": "*", "label": "MRP"},
     "mrp_ppi": {"color": "#5b6b7a", "marker": "p", "label": "MRP + predictions"},
+}
+
+# E5 segment methods: "raw" is the classical segment mean.
+SEGMENT_STYLE: Final[dict[str, dict[str, Any]]] = {
+    "raw": {**ESTIMATOR_STYLE["classical"], "label": "raw segment mean"},
+    "ppi": {**ESTIMATOR_STYLE["ppi"], "label": "PPI within segment"},
+    "mrp": ESTIMATOR_STYLE["mrp"],
+    "mrp_ppi": ESTIMATOR_STYLE["mrp_ppi"],
 }
 
 
@@ -393,4 +403,58 @@ def design_figure(
     if title:
         fig.suptitle(title, color=TEXT_PRIMARY, fontsize=12)
     fig.tight_layout(rect=(0, 0.07, 1, 1))
+    return _save(fig, path)
+
+
+def segment_figure(
+    table: pl.DataFrame,
+    path: str | Path,
+    *,
+    bins: list[str],
+    nominal: float,
+    title: str = "",
+) -> Path:
+    """E5: segment RMSE and coverage by number of respondents in the segment.
+
+    ``table`` has ``bin``, ``method``, ``rmse``, ``coverage``, ``coverage_lo`` and
+    ``coverage_hi``; ``bins`` gives the x-axis order. The coverage panel draws the
+    nominal line, the A1 band and Wilson 95% bars.
+    """
+    apply_style()
+    fig, (ax_r, ax_c) = plt.subplots(1, 2, figsize=(11, 4.2))
+    ax_c.axhspan(0.88, 0.92, color=GRID, alpha=0.6, lw=0, label="A1 band 88%-92%")
+    ax_c.axhline(nominal, color=REFERENCE, lw=1.2, label=f"nominal {nominal:.0%}")
+    pos = {b: i for i, b in enumerate(bins)}
+    offsets = {m: (k - 1.5) * 0.08 for k, m in enumerate(SEGMENT_STYLE)}
+    for method, style in SEGMENT_STYLE.items():
+        d = table.filter(pl.col("method") == method)
+        d = d.filter(pl.col("bin").is_in(bins))
+        if d.is_empty():
+            continue
+        x = [pos[b] for b in d["bin"].to_list()]
+        order = sorted(range(len(x)), key=x.__getitem__)
+        xs = [x[i] for i in order]
+        rmse = d["rmse"].to_numpy()[order]
+        cov = d["coverage"].to_numpy()[order]
+        lo = d["coverage_lo"].to_numpy()[order]
+        hi = d["coverage_hi"].to_numpy()[order]
+        ax_r.plot(xs, rmse, color=style["color"], marker=style["marker"], label=style["label"])
+        yerr = [np.clip(cov - lo, 0, None), np.clip(hi - cov, 0, None)]
+        shifted = [v + offsets[method] for v in xs]
+        ax_c.errorbar(shifted, cov, yerr=yerr, color=style["color"], marker=style["marker"],
+                      capsize=2.5, lw=1.4)  # fmt: skip
+    for ax in (ax_r, ax_c):
+        ax.set_xticks(range(len(bins)), bins)
+        ax.set_xlabel("respondents in segment")
+    ax_r.set_ylabel("RMSE vs true segment NPS (NPS points)")
+    ax_r.set_title("Segment estimate error")
+    ax_c.set_ylabel("empirical coverage")
+    ax_c.set_ylim(0.5, 1.0)
+    ax_c.set_title(f"Coverage of nominal {nominal:.0%} intervals (Wilson 95% bars)")
+    handles, labels = ax_r.get_legend_handles_labels()
+    h2, l2 = ax_c.get_legend_handles_labels()
+    fig.legend(handles + h2, labels + l2, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.02))
+    if title:
+        fig.suptitle(title, color=TEXT_PRIMARY, fontsize=12)
+    fig.tight_layout(rect=(0, 0.12, 1, 1))
     return _save(fig, path)
