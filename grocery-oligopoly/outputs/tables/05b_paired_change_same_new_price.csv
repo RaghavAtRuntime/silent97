@@ -1,0 +1,14 @@
+banner_a,banner_b,pair_group,paired_changes,share_new_price_identical
+Loblaws,No Frills,Same parent (Loblaw),18700,0.07631016042780749
+Loblaws,Metro,"Rival parents, Toronto",2705,0.2879852125693161
+No Frills,Metro,"Rival parents, Toronto",2376,0.0361952861952862
+Loblaws,Walmart,"Rival parents, Toronto",2424,0.0
+No Frills,Walmart,"Rival parents, Toronto",2492,0.009630818619582664
+Metro,Walmart,"Rival parents, Toronto",1068,0.0018726591760299626
+Loblaws,Voilà,"Rival parents, Toronto",214,0.21495327102803738
+Metro,Voilà,"Rival parents, Toronto",155,0.2064516129032258
+Loblaws,Save-On-Foods,Out-of-market control,4682,0.05574540794532251
+No Frills,Save-On-Foods,Out-of-market control,3803,0.025243229029713384
+Metro,Save-On-Foods,Out-of-market control,1941,0.12107161257083977
+Walmart,Save-On-Foods,Out-of-market control,1339,0.0
+Metro,Galleria,Independent specialty,64,0.140625

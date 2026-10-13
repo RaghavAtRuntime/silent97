@@ -1,0 +1,1353 @@
+month,geo,product,value,yoy
+2018-01-01,Ontario,Food purchased from stores,145.5,0.021052631578947434
+2018-01-01,"Toronto, Ontario",All-items,135.3,0.024224072672218044
+2018-01-01,Ontario,Fresh fruit and vegetables,138.1,0.05904907975460105
+2018-01-01,Ontario,Bakery and cereal products (excluding baby food),156.1,0.015614834092387841
+2018-01-01,Ontario,Meat,157.9,0.014129736673089477
+2018-01-01,Ontario,All-items,133.2,0.0183486238532109
+2018-01-01,Ontario,Dairy products and eggs,134.1,0.0007462686567163423
+2018-01-01,Canada,Bakery and cereal products (excluding baby food),151.0,0.003989361702127603
+2018-01-01,Canada,Dairy products and eggs,134.0,-0.0037174721189591198
+2018-01-01,Canada,Fresh fruit and vegetables,138.2,0.06062931696085938
+2018-01-01,Canada,Meat,156.2,0.012313674659753637
+2018-01-01,Canada,Food purchased from stores,142.6,0.016393442622950616
+2018-01-01,Canada,All-items,131.7,0.01698841698841691
+2018-02-01,Ontario,Fresh fruit and vegetables,134.5,0.021260440394836877
+2018-02-01,Ontario,Bakery and cereal products (excluding baby food),157.7,0.02071197411003234
+2018-02-01,Ontario,Dairy products and eggs,133.0,0.0022607385079127518
+2018-02-01,Ontario,Meat,159.4,0.013350286077558726
+2018-02-01,Ontario,Food purchased from stores,144.8,0.011879804332634691
+2018-02-01,Ontario,All-items,134.0,0.021341463414634276
+2018-02-01,"Toronto, Ontario",All-items,136.0,0.026415094339622636
+2018-02-01,Canada,Bakery and cereal products (excluding baby food),152.0,0.009966777408637828
+2018-02-01,Canada,Dairy products and eggs,134.1,0.0014936519790886837
+2018-02-01,Canada,Meat,156.7,0.01621271076523989
+2018-02-01,Canada,Food purchased from stores,142.3,0.013532763532763559
+2018-02-01,Canada,All-items,132.5,0.021588280647648617
+2018-02-01,Canada,Fresh fruit and vegetables,135.9,0.04217791411042948
+2018-03-01,"Toronto, Ontario",All-items,136.7,0.02781954887218041
+2018-03-01,Ontario,Fresh fruit and vegetables,131.1,0.02262090483619339
+2018-03-01,Ontario,Bakery and cereal products (excluding baby food),156.5,0.0136010362694301
+2018-03-01,Ontario,Dairy products and eggs,133.0,-0.0015015015015014122
+2018-03-01,Ontario,Meat,157.6,0.0019071837253654689
+2018-03-01,Ontario,Food purchased from stores,143.6,0.006306937631394671
+2018-03-01,Ontario,All-items,134.6,0.0243531202435312
+2018-03-01,Canada,Bakery and cereal products (excluding baby food),151.1,0.002654280026542777
+2018-03-01,Canada,Dairy products and eggs,133.8,-0.0029806259314454353
+2018-03-01,Canada,Meat,156.0,0.005154639175257714
+2018-03-01,Canada,Food purchased from stores,141.3,0.004978662873399875
+2018-03-01,Canada,All-items,132.9,0.023094688221708903
+2018-03-01,Canada,Fresh fruit and vegetables,132.7,0.028682170542635665
+2018-04-01,Ontario,Meat,159.5,0.013986013986013957
+2018-04-01,"Toronto, Ontario",All-items,136.8,0.023952095808383422
+2018-04-01,Ontario,Fresh fruit and vegetables,132.6,-0.0007535795026374359
+2018-04-01,Ontario,Bakery and cereal products (excluding baby food),156.3,0.00643915003219564
+2018-04-01,Ontario,Dairy products and eggs,133.7,0.0
+2018-04-01,Ontario,Food purchased from stores,144.6,0.009071877180739651
+2018-04-01,Ontario,All-items,134.8,0.021212121212121238
+2018-04-01,Canada,Fresh fruit and vegetables,132.3,0.01534919416730629
+2018-04-01,Canada,Bakery and cereal products (excluding baby food),151.5,-0.0006596306068601399
+2018-04-01,Canada,Dairy products and eggs,133.7,-0.007423904974016349
+2018-04-01,Canada,Meat,158.2,0.018018018018017834
+2018-04-01,Canada,Food purchased from stores,141.9,0.007097232079489091
+2018-04-01,Canada,All-items,133.3,0.02223926380368102
+2018-05-01,Ontario,Fresh fruit and vegetables,133.4,-0.015498154981549828
+2018-05-01,Ontario,Bakery and cereal products (excluding baby food),158.0,0.023979261179520428
+2018-05-01,Ontario,Dairy products and eggs,132.4,-0.005259203606310936
+2018-05-01,Ontario,Meat,158.6,0.0069841269841268705
+2018-05-01,Ontario,Food purchased from stores,144.0,-0.000693962526023606
+2018-05-01,Ontario,All-items,134.9,0.022744503411675554
+2018-05-01,"Toronto, Ontario",All-items,136.7,0.022438294689603566
+2018-05-01,Canada,Bakery and cereal products (excluding baby food),151.6,0.002645502645502784
+2018-05-01,Canada,Dairy products and eggs,133.6,-0.005212211466865346
+2018-05-01,Canada,Meat,156.3,0.0025657472738935816
+2018-05-01,Canada,Food purchased from stores,141.4,-0.004926108374384119
+2018-05-01,Canada,All-items,133.4,0.022222222222222365
+2018-05-01,Canada,Fresh fruit and vegetables,133.4,-0.015498154981549828
+2018-06-01,"Toronto, Ontario",All-items,137.5,0.024590163934426368
+2018-06-01,Ontario,Fresh fruit and vegetables,139.0,0.012381646030589888
+2018-06-01,Ontario,Bakery and cereal products (excluding baby food),157.7,0.014800514800514586
+2018-06-01,Ontario,Dairy products and eggs,133.6,0.010590015128593144
+2018-06-01,Ontario,Meat,160.7,0.024872448979591733
+2018-06-01,Ontario,Food purchased from stores,146.2,0.0117647058823529
+2018-06-01,Ontario,All-items,135.3,0.024224072672218044
+2018-06-01,Canada,Bakery and cereal products (excluding baby food),151.2,-0.003295978905734964
+2018-06-01,Canada,Dairy products and eggs,133.3,-0.002245508982035793
+2018-06-01,Canada,Meat,157.6,0.007028753993610248
+2018-06-01,Canada,Food purchased from stores,142.7,0.0007012622720896644
+2018-06-01,Canada,All-items,133.6,0.024539877300613355
+2018-06-01,Canada,Fresh fruit and vegetables,138.5,0.005079825834542806
+2018-07-01,Ontario,Food purchased from stores,146.9,0.008928571428571397
+2018-07-01,Ontario,Fresh fruit and vegetables,142.7,0.029581529581529598
+2018-07-01,Ontario,Bakery and cereal products (excluding baby food),157.2,0.008338678640153807
+2018-07-01,Ontario,Dairy products and eggs,134.6,0.015082956259426794
+2018-07-01,Ontario,Meat,161.9,0.008722741433021763
+2018-07-01,Ontario,All-items,136.0,0.031084154662623265
+2018-07-01,"Toronto, Ontario",All-items,138.0,0.029850746268656803
+2018-07-01,Canada,Bakery and cereal products (excluding baby food),151.3,-0.006565988181221227
+2018-07-01,Canada,Dairy products and eggs,133.5,0.0
+2018-07-01,Canada,Meat,158.7,0.0018939393939392257
+2018-07-01,Canada,Food purchased from stores,143.3,0.000698324022346597
+2018-07-01,Canada,All-items,134.3,0.029907975460122804
+2018-07-01,Canada,Fresh fruit and vegetables,140.8,0.016606498194945862
+2018-08-01,Ontario,Fresh fruit and vegetables,136.6,0.03720577069096431
+2018-08-01,Ontario,Bakery and cereal products (excluding baby food),157.6,0.005102040816326481
+2018-08-01,Ontario,Dairy products and eggs,134.7,0.019682059046177036
+2018-08-01,Ontario,Meat,162.3,0.007448789571694814
+2018-08-01,Ontario,Food purchased from stores,145.7,0.009702009702009518
+2018-08-01,Ontario,All-items,135.9,0.031107738998482404
+2018-08-01,"Toronto, Ontario",All-items,137.9,0.03064275037369213
+2018-08-01,Canada,Bakery and cereal products (excluding baby food),151.8,-0.007843137254901933
+2018-08-01,Canada,Dairy products and eggs,134.3,0.002238805970149249
+2018-08-01,Canada,Meat,159.7,0.0025109855618328236
+2018-08-01,Canada,Food purchased from stores,142.8,0.002808988764045006
+2018-08-01,Canada,All-items,134.2,0.028352490421455823
+2018-08-01,Canada,Fresh fruit and vegetables,136.0,0.030303030303030276
+2018-09-01,"Toronto, Ontario",All-items,137.4,0.022321428571428603
+2018-09-01,Ontario,Fresh fruit and vegetables,130.9,0.06769983686786296
+2018-09-01,Ontario,Bakery and cereal products (excluding baby food),155.1,0.0032341526520052177
+2018-09-01,Ontario,Dairy products and eggs,135.3,0.028115501519756947
+2018-09-01,Ontario,Meat,160.6,0.010062893081761004
+2018-09-01,Ontario,Food purchased from stores,143.7,0.011971830985915366
+2018-09-01,Ontario,All-items,135.2,0.02191987906273596
+2018-09-01,Canada,Bakery and cereal products (excluding baby food),149.6,-0.007957559681697757
+2018-09-01,Canada,Dairy products and eggs,134.6,0.011269722013523609
+2018-09-01,Canada,Meat,159.4,0.005678233438485947
+2018-09-01,Canada,Food purchased from stores,141.4,0.006405693950177982
+2018-09-01,Canada,All-items,133.7,0.022171253822629744
+2018-09-01,Canada,Fresh fruit and vegetables,130.9,0.04803843074459557
+2018-10-01,Ontario,Food purchased from stores,142.9,0.016358463726884764
+2018-10-01,Ontario,Fresh fruit and vegetables,125.1,0.07844827586206882
+2018-10-01,Ontario,Bakery and cereal products (excluding baby food),158.9,0.010171646535282797
+2018-10-01,Ontario,Dairy products and eggs,134.1,0.021325209444021276
+2018-10-01,Ontario,Meat,160.2,0.013282732447817747
+2018-10-01,Ontario,All-items,135.6,0.02494331065759625
+2018-10-01,"Toronto, Ontario",All-items,137.9,0.026805658972449686
+2018-10-01,Canada,Bakery and cereal products (excluding baby food),152.3,-0.003924133420536213
+2018-10-01,Canada,All-items,134.1,0.02444614209320073
+2018-10-01,Canada,Food purchased from stores,140.7,0.010775862068965525
+2018-10-01,Canada,Fresh fruit and vegetables,128.3,0.0665004156275979
+2018-10-01,Canada,Dairy products and eggs,133.6,0.0060240963855420215
+2018-10-01,Canada,Meat,157.6,0.007028753993610248
+2018-11-01,"Toronto, Ontario",All-items,137.4,0.020802377414561812
+2018-11-01,Ontario,Fresh fruit and vegetables,134.0,0.07717041800643076
+2018-11-01,Ontario,Bakery and cereal products (excluding baby food),159.1,0.01402166985340969
+2018-11-01,Ontario,Dairy products and eggs,136.2,0.027924528301886742
+2018-11-01,Ontario,Food purchased from stores,145.3,0.020365168539325795
+2018-11-01,Ontario,Meat,160.4,0.003754693366708306
+2018-11-01,Canada,Bakery and cereal products (excluding baby food),152.2,0.003957783641160839
+2018-11-01,Canada,Dairy products and eggs,134.9,0.015813253012048056
+2018-11-01,Canada,Meat,158.8,0.005063291139240533
+2018-11-01,Canada,Food purchased from stores,142.7,0.014214641080312784
+2018-11-01,Canada,All-items,133.5,0.016755521706016685
+2018-11-01,Canada,Fresh fruit and vegetables,136.2,0.06240249609984394
+2018-11-01,Ontario,All-items,135.1,0.018085908063300682
+2018-12-01,Ontario,Food purchased from stores,148.6,0.03337969401947127
+2018-12-01,"Toronto, Ontario",All-items,137.5,0.026119402985074647
+2018-12-01,Ontario,Fresh fruit and vegetables,147.6,0.12671755725190836
+2018-12-01,Ontario,Bakery and cereal products (excluding baby food),161.0,0.02547770700636942
+2018-12-01,Ontario,Dairy products and eggs,136.6,0.02169035153328358
+2018-12-01,Ontario,Meat,160.1,-0.0006242197253433224
+2018-12-01,Ontario,All-items,135.0,0.022727272727272707
+2018-12-01,Canada,Bakery and cereal products (excluding baby food),153.7,0.00919238345370954
+2018-12-01,Canada,Dairy products and eggs,135.7,0.014958863126402377
+2018-12-01,Canada,Meat,158.3,0.006357279084551859
+2018-12-01,Canada,Food purchased from stores,144.8,0.024769992922859085
+2018-12-01,Canada,All-items,133.4,0.019877675840978437
+2018-12-01,Canada,Fresh fruit and vegetables,146.2,0.10007524454477035
+2019-01-01,"Toronto, Ontario",All-items,137.7,0.01773835920177369
+2019-01-01,Ontario,Fresh fruit and vegetables,149.8,0.08472121650977571
+2019-01-01,Ontario,Bakery and cereal products (excluding baby food),160.5,0.02818705957719425
+2019-01-01,Ontario,Dairy products and eggs,138.5,0.03281133482475762
+2019-01-01,Ontario,Meat,162.4,0.02849905003166553
+2019-01-01,Ontario,Food purchased from stores,150.1,0.03161512027491398
+2019-01-01,Ontario,All-items,135.2,0.01501501501501501
+2019-01-01,Canada,Bakery and cereal products (excluding baby food),153.8,0.018543046357615944
+2019-01-01,Canada,Dairy products and eggs,135.9,0.014179104477612059
+2019-01-01,Canada,Meat,159.8,0.023047375160051287
+2019-01-01,Canada,Food purchased from stores,146.1,0.024544179523141585
+2019-01-01,Canada,All-items,133.6,0.014426727410782103
+2019-01-01,Canada,Fresh fruit and vegetables,147.9,0.07018813314037642
+2019-02-01,Ontario,Meat,162.5,0.019447929736511993
+2019-02-01,"Toronto, Ontario",All-items,138.6,0.01911764705882346
+2019-02-01,Ontario,Fresh fruit and vegetables,149.8,0.11375464684014869
+2019-02-01,Ontario,Bakery and cereal products (excluding baby food),162.2,0.028535193405199832
+2019-02-01,Ontario,Dairy products and eggs,138.8,0.043609022556390986
+2019-02-01,Ontario,All-items,136.0,0.014925373134328401
+2019-02-01,Ontario,Food purchased from stores,151.0,0.04281767955801086
+2019-02-01,Canada,Fresh fruit and vegetables,149.0,0.0963944076526857
+2019-02-01,Canada,Bakery and cereal products (excluding baby food),155.1,0.020394736842105132
+2019-02-01,Canada,Dairy products and eggs,137.6,0.026099925428784587
+2019-02-01,Canada,Meat,159.4,0.01723037651563497
+2019-02-01,Canada,Food purchased from stores,147.1,0.03373155305692177
+2019-02-01,Canada,All-items,134.5,0.015094339622641506
+2019-03-01,"Toronto, Ontario",All-items,139.5,0.02048280907095834
+2019-03-01,Ontario,Fresh fruit and vegetables,149.1,0.13729977116704806
+2019-03-01,Ontario,Bakery and cereal products (excluding baby food),161.0,0.028753993610223683
+2019-03-01,Ontario,Dairy products and eggs,138.6,0.042105263157894646
+2019-03-01,Ontario,Meat,161.2,0.02284263959390853
+2019-03-01,Ontario,Food purchased from stores,150.4,0.047353760445682624
+2019-03-01,Ontario,All-items,137.0,0.017830609212481363
+2019-03-01,Canada,Fresh fruit and vegetables,149.3,0.1250941974378299
+2019-03-01,Canada,Dairy products and eggs,137.1,0.024663677130044803
+2019-03-01,Canada,Meat,158.9,0.018589743589743524
+2019-03-01,Canada,Food purchased from stores,147.0,0.04033970276008492
+2019-03-01,Canada,All-items,135.4,0.018811136192625977
+2019-03-01,Canada,Bakery and cereal products (excluding baby food),154.1,0.01985440105890146
+2019-04-01,Ontario,Fresh fruit and vegetables,150.1,0.1319758672699849
+2019-04-01,Ontario,Bakery and cereal products (excluding baby food),159.5,0.020473448496481028
+2019-04-01,Ontario,Dairy products and eggs,137.6,0.02916978309648477
+2019-04-01,Ontario,Meat,161.1,0.010031347962382364
+2019-04-01,Canada,All-items,136.0,0.020255063765941328
+2019-04-01,"Toronto, Ontario",All-items,139.8,0.021929824561403466
+2019-04-01,Canada,Food purchased from stores,146.1,0.029598308668076
+2019-04-01,Canada,Bakery and cereal products (excluding baby food),152.4,0.005940594059405946
+2019-04-01,Canada,Dairy products and eggs,136.3,0.01944652206432318
+2019-04-01,Canada,Fresh fruit and vegetables,147.5,0.11489040060468625
+2019-04-01,Ontario,All-items,137.4,0.01928783382789323
+2019-04-01,Canada,Meat,159.3,0.006953223767383276
+2019-04-01,Ontario,Food purchased from stores,150.0,0.03734439834024905
+2019-05-01,"Toronto, Ontario",All-items,140.3,0.02633504023408939
+2019-05-01,Ontario,Fresh fruit and vegetables,150.1,0.12518740629685143
+2019-05-01,Ontario,Bakery and cereal products (excluding baby food),162.8,0.0303797468354432
+2019-05-01,Ontario,Dairy products and eggs,139.6,0.05438066465256797
+2019-05-01,Ontario,Meat,163.7,0.0321563682219419
+2019-05-01,Ontario,Food purchased from stores,151.5,0.05208333333333326
+2019-05-01,Canada,Fresh fruit and vegetables,147.1,0.10269865067466255
+2019-05-01,Canada,Bakery and cereal products (excluding baby food),154.8,0.02110817941952514
+2019-05-01,Canada,Dairy products and eggs,137.8,0.0314371257485031
+2019-05-01,Canada,Meat,160.9,0.029430582213691547
+2019-05-01,Canada,Food purchased from stores,147.1,0.040311173974540315
+2019-05-01,Canada,All-items,136.6,0.02398800599700146
+2019-05-01,Ontario,All-items,138.1,0.02372127501853205
+2019-06-01,Canada,All-items,136.3,0.020209580838323582
+2019-06-01,Canada,Food purchased from stores,148.3,0.039243167484232844
+2019-06-01,Ontario,Fresh fruit and vegetables,155.7,0.12014388489208616
+2019-06-01,Canada,Dairy products and eggs,136.2,0.02175543885971476
+2019-06-01,Canada,Bakery and cereal products (excluding baby food),154.4,0.021164021164021385
+2019-06-01,Canada,Fresh fruit and vegetables,153.5,0.10830324909747291
+2019-06-01,Ontario,All-items,138.0,0.0199556541019954
+2019-06-01,Ontario,Food purchased from stores,152.7,0.044459644322845326
+2019-06-01,Ontario,Meat,167.2,0.04044803982576228
+2019-06-01,Ontario,Dairy products and eggs,139.1,0.04116766467065869
+2019-06-01,Ontario,Bakery and cereal products (excluding baby food),161.0,0.020925808497146647
+2019-06-01,"Toronto, Ontario",All-items,140.3,0.02036363636363636
+2019-06-01,Canada,Meat,163.8,0.03934010152284273
+2019-07-01,"Toronto, Ontario",All-items,141.2,0.023188405797101463
+2019-07-01,Ontario,Fresh fruit and vegetables,153.1,0.07288016818500354
+2019-07-01,Ontario,Bakery and cereal products (excluding baby food),163.1,0.03753180661577615
+2019-07-01,Ontario,Dairy products and eggs,139.2,0.03417533432392261
+2019-07-01,Ontario,Meat,168.4,0.04014823965410752
+2019-07-01,Ontario,Food purchased from stores,152.7,0.03948264125255263
+2019-07-01,Canada,Bakery and cereal products (excluding baby food),156.0,0.03106411103767348
+2019-07-01,Canada,Fresh fruit and vegetables,152.5,0.08309659090909083
+2019-07-01,Canada,Dairy products and eggs,137.7,0.03146067415730336
+2019-07-01,Canada,Meat,167.4,0.05482041587901709
+2019-07-01,Canada,Food purchased from stores,149.3,0.041870202372644716
+2019-07-01,Canada,All-items,137.0,0.02010424422933732
+2019-07-01,Ontario,All-items,138.8,0.020588235294117796
+2019-08-01,Canada,All-items,136.8,0.019374068554396606
+2019-08-01,Canada,Food purchased from stores,148.4,0.039215686274509665
+2019-08-01,Canada,Meat,167.3,0.0475892298058862
+2019-08-01,Ontario,Dairy products and eggs,140.0,0.039346696362286604
+2019-08-01,Canada,Bakery and cereal products (excluding baby food),156.8,0.03293807641633739
+2019-08-01,Ontario,All-items,138.5,0.019131714495952856
+2019-08-01,Ontario,Food purchased from stores,151.9,0.042553191489361764
+2019-08-01,Ontario,Meat,169.8,0.04621072088724576
+2019-08-01,Canada,Dairy products and eggs,137.9,0.026805658972449686
+2019-08-01,Ontario,Bakery and cereal products (excluding baby food),164.5,0.04378172588832485
+2019-08-01,Ontario,Fresh fruit and vegetables,145.3,0.06368960468521245
+2019-08-01,"Toronto, Ontario",All-items,140.9,0.021754894851341522
+2019-08-01,Canada,Fresh fruit and vegetables,146.2,0.07499999999999996
+2019-09-01,Ontario,Fresh fruit and vegetables,140.8,0.07563025210084029
+2019-09-01,Ontario,Bakery and cereal products (excluding baby food),160.0,0.03159252095422316
+2019-09-01,Ontario,Dairy products and eggs,139.5,0.03104212860310418
+2019-09-01,Ontario,Meat,169.3,0.05417185554171877
+2019-09-01,Ontario,Food purchased from stores,149.7,0.04175365344467652
+2019-09-01,"Toronto, Ontario",All-items,139.7,0.016739446870451147
+2019-09-01,Canada,Fresh fruit and vegetables,141.0,0.07715813598166532
+2019-09-01,Canada,Bakery and cereal products (excluding baby food),154.2,0.03074866310160429
+2019-09-01,Canada,Dairy products and eggs,138.0,0.025260029717682153
+2019-09-01,Canada,Meat,168.2,0.05520702634880803
+2019-09-01,Canada,Food purchased from stores,147.2,0.04101838755304099
+2019-09-01,Ontario,All-items,137.5,0.017011834319526686
+2019-09-01,Canada,All-items,136.2,0.018698578908002972
+2019-10-01,"Toronto, Ontario",All-items,140.3,0.017403915881073262
+2019-10-01,Ontario,Fresh fruit and vegetables,137.1,0.09592326139088736
+2019-10-01,Ontario,Dairy products and eggs,135.7,0.011931394481730084
+2019-10-01,Ontario,Meat,169.1,0.05555555555555558
+2019-10-01,Ontario,Food purchased from stores,148.8,0.041287613715885296
+2019-10-01,Ontario,Bakery and cereal products (excluding baby food),161.6,0.016991818753933297
+2019-10-01,Canada,Fresh fruit and vegetables,138.3,0.07794232268121593
+2019-10-01,Ontario,All-items,137.9,0.016961651917404286
+2019-10-01,Canada,All-items,136.6,0.018642803877703118
+2019-10-01,Canada,Dairy products and eggs,135.5,0.014221556886227615
+2019-10-01,Canada,Meat,167.3,0.061548223350254005
+2019-10-01,Canada,Bakery and cereal products (excluding baby food),156.0,0.024294156270518563
+2019-10-01,Canada,Food purchased from stores,146.5,0.0412224591329069
+2019-11-01,Canada,All-items,136.4,0.021722846441947663
+2019-11-01,Canada,Food purchased from stores,148.2,0.03854239663629988
+2019-11-01,Canada,Meat,167.1,0.0522670025188916
+2019-11-01,Canada,Dairy products and eggs,137.1,0.016308376575240757
+2019-11-01,Canada,Fresh fruit and vegetables,145.8,0.07048458149779746
+2019-11-01,Ontario,All-items,137.7,0.01924500370096216
+2019-11-01,Ontario,Food purchased from stores,150.5,0.0357880247763247
+2019-11-01,Ontario,Meat,167.9,0.04675810473815467
+2019-11-01,Ontario,Dairy products and eggs,138.1,0.013950073421439058
+2019-11-01,Ontario,Fresh fruit and vegetables,144.5,0.07835820895522394
+2019-11-01,"Toronto, Ontario",All-items,139.9,0.0181950509461426
+2019-11-01,Canada,Bakery and cereal products (excluding baby food),156.4,0.027595269382391763
+2019-11-01,Ontario,Bakery and cereal products (excluding baby food),162.4,0.020741671904462633
+2019-12-01,Ontario,Fresh fruit and vegetables,155.5,0.0535230352303524
+2019-12-01,Canada,Meat,165.9,0.04801010739102973
+2019-12-01,Canada,Dairy products and eggs,138.4,0.01989683124539443
+2019-12-01,Canada,Bakery and cereal products (excluding baby food),156.9,0.02081977878985053
+2019-12-01,Canada,Fresh fruit and vegetables,153.7,0.05129958960328307
+2019-12-01,Ontario,All-items,137.8,0.020740740740740726
+2019-12-01,Ontario,Food purchased from stores,152.9,0.02893674293405124
+2019-12-01,Ontario,Meat,168.5,0.05246720799500326
+2019-12-01,Ontario,Dairy products and eggs,139.6,0.02196193265007329
+2019-12-01,Ontario,Bakery and cereal products (excluding baby food),163.4,0.014906832298136719
+2019-12-01,"Toronto, Ontario",All-items,140.1,0.018909090909090764
+2019-12-01,Canada,Food purchased from stores,149.4,0.03176795580110503
+2019-12-01,Canada,All-items,136.4,0.022488755622188883
+2020-01-01,"Toronto, Ontario",All-items,139.9,0.015976761074800505
+2020-01-01,Canada,Food purchased from stores,151.6,0.03764544832306638
+2020-01-01,Canada,Meat,169.9,0.06320400500625789
+2020-01-01,Canada,Dairy products and eggs,138.8,0.021339220014716664
+2020-01-01,Canada,Bakery and cereal products (excluding baby food),156.9,0.02015604681404426
+2020-01-01,Canada,Fresh fruit and vegetables,155.5,0.051386071670047384
+2020-01-01,Canada,All-items,136.8,0.023952095808383422
+2020-01-01,Ontario,Food purchased from stores,154.5,0.02931379080612939
+2020-01-01,Ontario,Meat,170.4,0.049261083743842304
+2020-01-01,Ontario,Dairy products and eggs,141.0,0.018050541516245522
+2020-01-01,Ontario,Bakery and cereal products (excluding baby food),163.5,0.01869158878504673
+2020-01-01,Ontario,Fresh fruit and vegetables,154.2,0.029372496662216196
+2020-01-01,Ontario,All-items,138.0,0.020710059171597628
+2020-02-01,"Toronto, Ontario",All-items,140.5,0.013708513708513781
+2020-02-01,Ontario,Fresh fruit and vegetables,149.5,-0.0020026702269693164
+2020-02-01,Ontario,Bakery and cereal products (excluding baby food),163.9,0.010480887792848392
+2020-02-01,Ontario,Meat,169.6,0.0436923076923077
+2020-02-01,Ontario,Food purchased from stores,153.1,0.013907284768211792
+2020-02-01,Canada,Food purchased from stores,150.6,0.023793337865397612
+2020-02-01,Canada,Fresh fruit and vegetables,151.4,0.016107382550335503
+2020-02-01,Canada,Dairy products and eggs,140.5,0.02107558139534893
+2020-02-01,Canada,Meat,168.3,0.055834378920953665
+2020-02-01,Canada,All-items,137.4,0.021561338289962872
+2020-02-01,Ontario,All-items,138.7,0.019852941176470518
+2020-02-01,Canada,Bakery and cereal products (excluding baby food),157.9,0.01805286911669901
+2020-02-01,Ontario,Dairy products and eggs,142.1,0.023775216138328448
+2020-03-01,Canada,Dairy products and eggs,140.3,0.02334062727935815
+2020-03-01,Canada,All-items,136.6,0.008862629246676468
+2020-03-01,Canada,Food purchased from stores,150.5,0.023809523809523725
+2020-03-01,Canada,Fresh fruit and vegetables,146.4,-0.01942397856664435
+2020-03-01,Ontario,All-items,137.9,0.006569343065693456
+2020-03-01,Ontario,Food purchased from stores,153.4,0.019946808510638236
+2020-03-01,Ontario,Meat,171.4,0.06327543424317628
+2020-03-01,Ontario,Dairy products and eggs,143.6,0.03607503607503615
+2020-03-01,Ontario,Bakery and cereal products (excluding baby food),166.6,0.034782608695652195
+2020-03-01,Ontario,Fresh fruit and vegetables,144.0,-0.03420523138832998
+2020-03-01,"Toronto, Ontario",All-items,140.1,0.004301075268817067
+2020-03-01,Canada,Meat,170.4,0.07237256135934556
+2020-03-01,Canada,Bakery and cereal products (excluding baby food),159.6,0.035691109669045984
+2020-04-01,Canada,Food purchased from stores,151.9,0.03969883641341565
+2020-04-01,Canada,All-items,135.7,-0.0022058823529412797
+2020-04-01,Canada,Bakery and cereal products (excluding baby food),158.7,0.04133858267716528
+2020-04-01,Canada,Fresh fruit and vegetables,150.8,0.022372881355932295
+2020-04-01,Ontario,All-items,137.3,-0.0007278020378456151
+2020-04-01,Ontario,Food purchased from stores,155.6,0.03733333333333322
+2020-04-01,Ontario,Meat,170.7,0.059590316573556734
+2020-04-01,Ontario,Dairy products and eggs,145.9,0.06031976744186052
+2020-04-01,Ontario,Bakery and cereal products (excluding baby food),167.3,0.0489028213166145
+2020-04-01,Ontario,Fresh fruit and vegetables,152.3,0.014656895403064807
+2020-04-01,"Toronto, Ontario",All-items,139.8,0.0
+2020-04-01,Canada,Meat,170.0,0.0671688637790333
+2020-04-01,Canada,Dairy products and eggs,142.8,0.047688921496698455
+2020-05-01,Ontario,Fresh fruit and vegetables,147.6,-0.016655562958027947
+2020-05-01,Canada,All-items,136.1,-0.0036603221083455484
+2020-05-01,Canada,Food purchased from stores,152.3,0.03535010197144817
+2020-05-01,Canada,Bakery and cereal products (excluding baby food),160.2,0.0348837209302324
+2020-05-01,"Toronto, Ontario",All-items,139.7,-0.004276550249465605
+2020-05-01,Canada,Dairy products and eggs,142.8,0.036284470246734424
+2020-05-01,Ontario,Bakery and cereal products (excluding baby food),166.8,0.024570024570024662
+2020-05-01,Ontario,Dairy products and eggs,145.8,0.044412607449856756
+2020-05-01,Ontario,Meat,174.2,0.06414172266340867
+2020-05-01,Ontario,Food purchased from stores,155.1,0.023762376237623783
+2020-05-01,Ontario,All-items,137.5,-0.004344677769732019
+2020-05-01,Canada,Fresh fruit and vegetables,148.2,0.007477906186267758
+2020-05-01,Canada,Meat,173.5,0.07830950901180844
+2020-06-01,Canada,Dairy products and eggs,142.1,0.043318649045521296
+2020-06-01,Ontario,Bakery and cereal products (excluding baby food),165.9,0.0304347826086957
+2020-06-01,Ontario,Dairy products and eggs,146.2,0.051042415528396834
+2020-06-01,Ontario,Meat,177.1,0.0592105263157896
+2020-06-01,Ontario,Food purchased from stores,155.8,0.02030124426981028
+2020-06-01,Ontario,All-items,138.6,0.004347826086956497
+2020-06-01,"Toronto, Ontario",All-items,140.7,0.0028510334996434405
+2020-06-01,Canada,Bakery and cereal products (excluding baby food),158.9,0.029145077720207357
+2020-06-01,Ontario,Fresh fruit and vegetables,152.6,-0.019910083493898445
+2020-06-01,Canada,Meat,177.0,0.08058608058608052
+2020-06-01,Canada,Food purchased from stores,152.8,0.030343897505057393
+2020-06-01,Canada,All-items,137.2,0.006603081438004255
+2020-06-01,Canada,Fresh fruit and vegetables,152.5,-0.006514657980456029
+2020-07-01,Ontario,Fresh fruit and vegetables,158.2,0.03331156107119515
+2020-07-01,Canada,All-items,137.2,0.0014598540145984717
+2020-07-01,Canada,Food purchased from stores,152.9,0.024112525117213623
+2020-07-01,"Toronto, Ontario",All-items,140.6,-0.004249291784702458
+2020-07-01,Ontario,Dairy products and eggs,145.1,0.04238505747126431
+2020-07-01,Ontario,Bakery and cereal products (excluding baby food),161.5,-0.009809932556713585
+2020-07-01,Ontario,Food purchased from stores,156.2,0.02292075965946294
+2020-07-01,Ontario,Meat,176.7,0.04928741092636568
+2020-07-01,Canada,Fresh fruit and vegetables,155.6,0.020327868852459074
+2020-07-01,Canada,Bakery and cereal products (excluding baby food),156.9,0.005769230769230749
+2020-07-01,Canada,Dairy products and eggs,141.2,0.02541757443718229
+2020-07-01,Canada,Meat,175.5,0.048387096774193505
+2020-07-01,Ontario,All-items,138.8,0.0
+2020-08-01,Ontario,Bakery and cereal products (excluding baby food),163.9,-0.0036474164133738496
+2020-08-01,Ontario,Dairy products and eggs,147.7,0.05499999999999994
+2020-08-01,Ontario,Meat,171.6,0.010600706713780772
+2020-08-01,Ontario,Food purchased from stores,154.2,0.01514154048716243
+2020-08-01,Ontario,All-items,138.6,0.0007220216606498298
+2020-08-01,Canada,Fresh fruit and vegetables,150.7,0.03077975376196984
+2020-08-01,Canada,Bakery and cereal products (excluding baby food),157.8,0.0063775510204082675
+2020-08-01,Canada,Meat,170.4,0.018529587567244432
+2020-08-01,Canada,Food purchased from stores,150.8,0.016172506738544534
+2020-08-01,Canada,All-items,137.0,0.0014619883040933868
+2020-08-01,Canada,Dairy products and eggs,142.3,0.03190717911530094
+2020-08-01,"Toronto, Ontario",All-items,140.4,-0.0035486160397445454
+2020-08-01,Ontario,Fresh fruit and vegetables,153.5,0.0564349621472815
+2020-09-01,Canada,Food purchased from stores,149.1,0.012907608695652106
+2020-09-01,Ontario,Fresh fruit and vegetables,148.4,0.05397727272727271
+2020-09-01,Ontario,Bakery and cereal products (excluding baby food),161.2,0.00749999999999984
+2020-09-01,Ontario,Dairy products and eggs,144.2,0.033691756272401285
+2020-09-01,Ontario,Meat,170.0,0.0041346721795627595
+2020-09-01,"Toronto, Ontario",All-items,140.0,0.0021474588403722628
+2020-09-01,Ontario,All-items,138.3,0.0058181818181819445
+2020-09-01,Canada,Fresh fruit and vegetables,145.9,0.034751773049645385
+2020-09-01,Canada,Bakery and cereal products (excluding baby food),155.1,0.005836575875486361
+2020-09-01,Canada,Dairy products and eggs,140.8,0.020289855072463947
+2020-09-01,Canada,Meat,168.8,0.003567181926278362
+2020-09-01,Ontario,Food purchased from stores,152.1,0.01603206412825653
+2020-09-01,Canada,All-items,136.9,0.0051395007342145416
+2020-10-01,Ontario,Meat,168.9,-0.0011827321111766986
+2020-10-01,Canada,All-items,137.5,0.0065885797950220315
+2020-10-01,Canada,Food purchased from stores,149.9,0.02320819112627981
+2020-10-01,Canada,Meat,170.2,0.017334130304841544
+2020-10-01,Canada,Dairy products and eggs,140.5,0.03690036900368998
+2020-10-01,Canada,Bakery and cereal products (excluding baby food),156.6,0.0038461538461538325
+2020-10-01,Canada,Fresh fruit and vegetables,148.3,0.07230657989877076
+2020-10-01,Ontario,All-items,138.9,0.007251631617113841
+2020-10-01,Ontario,Food purchased from stores,152.5,0.024865591397849274
+2020-10-01,Ontario,Dairy products and eggs,145.0,0.06853352984524697
+2020-10-01,Ontario,Fresh fruit and vegetables,149.4,0.0897155361050328
+2020-10-01,"Toronto, Ontario",All-items,140.8,0.0035637918745545782
+2020-10-01,Ontario,Bakery and cereal products (excluding baby food),163.7,0.012995049504950451
+2020-11-01,"Toronto, Ontario",All-items,140.7,0.005718370264474526
+2020-11-01,Ontario,Fresh fruit and vegetables,148.8,0.02975778546712804
+2020-11-01,Ontario,Bakery and cereal products (excluding baby food),161.1,-0.008004926108374444
+2020-11-01,Ontario,Meat,171.0,0.01846337105419882
+2020-11-01,Ontario,Food purchased from stores,152.9,0.015946843853820614
+2020-11-01,Ontario,Dairy products and eggs,144.8,0.048515568428675104
+2020-11-01,Canada,Fresh fruit and vegetables,150.0,0.028806584362139898
+2020-11-01,Canada,Bakery and cereal products (excluding baby food),155.2,-0.007672634271099876
+2020-11-01,Canada,Dairy products and eggs,141.6,0.03282275711159732
+2020-11-01,Canada,Meat,170.9,0.022740873728306576
+2020-11-01,Canada,Food purchased from stores,150.6,0.0161943319838056
+2020-11-01,Canada,All-items,137.7,0.009530791788856074
+2020-11-01,Ontario,All-items,139.0,0.009440813362382006
+2020-12-01,Canada,All-items,137.4,0.007331378299120228
+2020-12-01,Canada,Food purchased from stores,150.2,0.0053547523427039945
+2020-12-01,Canada,Meat,170.0,0.02471368294153109
+2020-12-01,Canada,Dairy products and eggs,141.5,0.022398843930635737
+2020-12-01,Canada,Bakery and cereal products (excluding baby food),156.4,-0.0031867431485022024
+2020-12-01,Canada,Fresh fruit and vegetables,150.4,-0.021470396877033116
+2020-12-01,Ontario,All-items,138.8,0.007256894049346929
+2020-12-01,Ontario,Food purchased from stores,153.2,0.0019620667102679956
+2020-12-01,Ontario,Bakery and cereal products (excluding baby food),162.8,-0.003671970624234966
+2020-12-01,Ontario,Dairy products and eggs,145.6,0.042979942693409656
+2020-12-01,Ontario,Meat,171.1,0.01543026706231454
+2020-12-01,Ontario,Fresh fruit and vegetables,150.9,-0.029581993569131826
+2020-12-01,"Toronto, Ontario",All-items,140.5,0.002855103497501732
+2021-01-01,"Toronto, Ontario",All-items,141.0,0.00786275911365264
+2021-01-01,Ontario,Fresh fruit and vegetables,156.9,0.017509727626459304
+2021-01-01,Ontario,Bakery and cereal products (excluding baby food),160.9,-0.01590214067278284
+2021-01-01,Ontario,Meat,171.5,0.006455399061032763
+2021-01-01,Ontario,Food purchased from stores,155.1,0.003883495145631022
+2021-01-01,Canada,All-items,138.2,0.010233918128654818
+2021-01-01,Canada,Fresh fruit and vegetables,154.3,-0.007717041800643032
+2021-01-01,Canada,Bakery and cereal products (excluding baby food),154.2,-0.017208413001912115
+2021-01-01,Canada,Dairy products and eggs,141.6,0.020172910662824117
+2021-01-01,Canada,Meat,171.9,0.011771630370806418
+2021-01-01,Canada,Food purchased from stores,151.7,0.0006596306068600288
+2021-01-01,Ontario,All-items,139.5,0.010869565217391353
+2021-01-01,Ontario,Dairy products and eggs,145.5,0.03191489361702127
+2021-02-01,"Toronto, Ontario",All-items,141.7,0.008540925266903754
+2021-02-01,Ontario,Fresh fruit and vegetables,158.5,0.06020066889632103
+2021-02-01,Ontario,Bakery and cereal products (excluding baby food),162.8,-0.006711409395973145
+2021-02-01,Ontario,Dairy products and eggs,146.1,0.028149190710767158
+2021-02-01,Ontario,Meat,168.0,-0.009433962264150941
+2021-02-01,Canada,Fresh fruit and vegetables,156.5,0.03368560105680318
+2021-02-01,Ontario,All-items,140.2,0.010814708002883977
+2021-02-01,Canada,All-items,138.9,0.01091703056768556
+2021-02-01,Canada,Food purchased from stores,152.6,0.013280212483399723
+2021-02-01,Ontario,Food purchased from stores,155.0,0.01241018941868055
+2021-02-01,Canada,Dairy products and eggs,143.1,0.0185053380782918
+2021-02-01,Canada,Meat,169.5,0.007130124777183555
+2021-02-01,Canada,Bakery and cereal products (excluding baby food),157.1,-0.005066497783407287
+2021-03-01,"Toronto, Ontario",All-items,142.5,0.017130620985010836
+2021-03-01,Ontario,Fresh fruit and vegetables,153.1,0.06319444444444433
+2021-03-01,Ontario,Bakery and cereal products (excluding baby food),162.9,-0.02220888355342132
+2021-03-01,Ontario,Dairy products and eggs,148.1,0.03133704735376042
+2021-03-01,Ontario,Food purchased from stores,155.7,0.014993481095175953
+2021-03-01,Ontario,Meat,171.3,-0.0005834305717619115
+2021-03-01,Canada,Bakery and cereal products (excluding baby food),156.8,-0.01754385964912275
+2021-03-01,Canada,Dairy products and eggs,144.9,0.032786885245901676
+2021-03-01,Canada,Meat,170.2,-0.0011737089201878659
+2021-03-01,Canada,Food purchased from stores,152.5,0.013289036544850585
+2021-03-01,Canada,All-items,139.6,0.02196193265007329
+2021-03-01,Ontario,All-items,141.0,0.02248005801305286
+2021-03-01,Canada,Fresh fruit and vegetables,150.8,0.030054644808743314
+2021-04-01,Canada,All-items,140.3,0.033898305084745894
+2021-04-01,Canada,Food purchased from stores,152.0,0.0006583278472678256
+2021-04-01,Canada,Meat,173.5,0.020588235294117574
+2021-04-01,Canada,Bakery and cereal products (excluding baby food),156.2,-0.015752993068683052
+2021-04-01,Ontario,All-items,141.8,0.03277494537509096
+2021-04-01,Ontario,Food purchased from stores,155.2,-0.0025706940874036244
+2021-04-01,Ontario,Meat,174.7,0.023432923257176386
+2021-04-01,Ontario,Dairy products and eggs,149.5,0.024674434544208257
+2021-04-01,Ontario,Bakery and cereal products (excluding baby food),161.1,-0.037059175134489086
+2021-04-01,Ontario,Fresh fruit and vegetables,150.0,-0.015101772816809023
+2021-04-01,"Toronto, Ontario",All-items,143.1,0.023605150214592197
+2021-04-01,Canada,Fresh fruit and vegetables,146.0,-0.03183023872679047
+2021-04-01,Canada,Dairy products and eggs,146.1,0.02310924369747891
+2021-05-01,"Toronto, Ontario",All-items,143.7,0.02863278453829632
+2021-05-01,Ontario,Fresh fruit and vegetables,150.4,0.01897018970189701
+2021-05-01,Ontario,Bakery and cereal products (excluding baby food),165.0,-0.010791366906474864
+2021-05-01,Ontario,Dairy products and eggs,150.5,0.03223593964334692
+2021-05-01,Ontario,Meat,175.0,0.004592422502870397
+2021-05-01,Ontario,All-items,142.6,0.03709090909090906
+2021-05-01,Canada,Fresh fruit and vegetables,149.0,0.005398110661268607
+2021-05-01,Canada,Bakery and cereal products (excluding baby food),157.8,-0.014981273408239515
+2021-05-01,Canada,Dairy products and eggs,146.6,0.026610644257702987
+2021-05-01,Canada,Meat,175.4,0.010951008645533111
+2021-05-01,Canada,Food purchased from stores,153.6,0.008535784635587573
+2021-05-01,Canada,All-items,141.0,0.03600293901542995
+2021-05-01,Ontario,Food purchased from stores,156.4,0.008381689232753065
+2021-06-01,Ontario,Dairy products and eggs,148.8,0.017783857729138264
+2021-06-01,"Toronto, Ontario",All-items,144.2,0.02487562189054726
+2021-06-01,Ontario,Fresh fruit and vegetables,151.2,-0.00917431192660556
+2021-06-01,Ontario,Bakery and cereal products (excluding baby food),164.7,-0.007233273056057921
+2021-06-01,Ontario,Meat,176.4,-0.0039525691699604515
+2021-06-01,Canada,Dairy products and eggs,145.3,0.022519352568613815
+2021-06-01,Ontario,All-items,143.1,0.032467532467532534
+2021-06-01,Canada,Fresh fruit and vegetables,149.0,-0.022950819672131195
+2021-06-01,Canada,Bakery and cereal products (excluding baby food),157.7,-0.007551919446192712
+2021-06-01,Canada,Meat,176.7,-0.0016949152542373724
+2021-06-01,Canada,Food purchased from stores,153.8,0.00654450261780104
+2021-06-01,Ontario,Food purchased from stores,156.5,0.00449293966623876
+2021-06-01,Canada,All-items,141.4,0.03061224489795933
+2021-07-01,"Toronto, Ontario",All-items,144.6,0.028449502133712556
+2021-07-01,Ontario,Fresh fruit and vegetables,149.7,-0.05372945638432369
+2021-07-01,Ontario,Bakery and cereal products (excluding baby food),165.1,0.022291021671826616
+2021-07-01,Ontario,Dairy products and eggs,151.4,0.04341833218470037
+2021-07-01,Ontario,Meat,180.1,0.019241652518392716
+2021-07-01,Canada,Bakery and cereal products (excluding baby food),157.9,0.006373486297004405
+2021-07-01,Canada,Dairy products and eggs,146.4,0.03682719546742219
+2021-07-01,Canada,Meat,180.9,0.030769230769230882
+2021-07-01,Canada,Food purchased from stores,154.4,0.009810333551340644
+2021-07-01,Canada,All-items,142.3,0.037172011661807725
+2021-07-01,Ontario,All-items,143.7,0.03530259365994226
+2021-07-01,Ontario,Food purchased from stores,157.2,0.006402048655569814
+2021-07-01,Canada,Fresh fruit and vegetables,148.5,-0.045629820051413805
+2021-08-01,Ontario,Food purchased from stores,157.8,0.023346303501945664
+2021-08-01,Canada,All-items,142.6,0.040875912408758985
+2021-08-01,Canada,Food purchased from stores,154.7,0.025862068965517127
+2021-08-01,Canada,Meat,182.1,0.06866197183098577
+2021-08-01,Canada,Dairy products and eggs,148.3,0.0421644413211526
+2021-08-01,Canada,Bakery and cereal products (excluding baby food),158.5,0.004435994930291454
+2021-08-01,Canada,Fresh fruit and vegetables,147.0,-0.024552090245520852
+2021-08-01,Ontario,All-items,144.1,0.039682539682539764
+2021-08-01,Ontario,Meat,183.2,0.06759906759906764
+2021-08-01,Ontario,Dairy products and eggs,152.7,0.03385240352065
+2021-08-01,Ontario,Bakery and cereal products (excluding baby food),164.8,0.005491153142159977
+2021-08-01,Ontario,Fresh fruit and vegetables,148.7,-0.03127035830618896
+2021-08-01,"Toronto, Ontario",All-items,145.0,0.03276353276353272
+2021-09-01,Canada,All-items,142.9,0.04382761139517899
+2021-09-01,Canada,Fresh fruit and vegetables,144.3,-0.010966415352981485
+2021-09-01,Canada,Food purchased from stores,155.4,0.04225352112676073
+2021-09-01,Canada,Dairy products and eggs,148.0,0.051136363636363535
+2021-09-01,Canada,Meat,184.8,0.09478672985782
+2021-09-01,Ontario,All-items,144.4,0.04410701373825021
+2021-09-01,Ontario,Food purchased from stores,158.2,0.040105193951347706
+2021-09-01,Ontario,Meat,183.9,0.08176470588235296
+2021-09-01,Ontario,Dairy products and eggs,152.4,0.05686546463245512
+2021-09-01,Ontario,Bakery and cereal products (excluding baby food),164.9,0.02295285359801502
+2021-09-01,Ontario,Fresh fruit and vegetables,145.9,-0.016846361185983816
+2021-09-01,"Toronto, Ontario",All-items,145.3,0.037857142857143034
+2021-09-01,Canada,Bakery and cereal products (excluding baby food),158.1,0.01934235976789167
+2021-10-01,"Toronto, Ontario",All-items,146.5,0.040482954545454364
+2021-10-01,Ontario,Fresh fruit and vegetables,145.5,-0.026104417670682722
+2021-10-01,Ontario,Bakery and cereal products (excluding baby food),166.8,0.01893708002443506
+2021-10-01,Ontario,All-items,145.7,0.048956083513318704
+2021-10-01,Canada,Fresh fruit and vegetables,144.5,-0.025623735670937342
+2021-10-01,Canada,All-items,143.9,0.04654545454545467
+2021-10-01,Canada,Dairy products and eggs,146.6,0.04341637010676158
+2021-10-01,Canada,Meat,187.1,0.09929494712103404
+2021-10-01,Canada,Food purchased from stores,155.8,0.03935957304869908
+2021-10-01,Ontario,Dairy products and eggs,150.3,0.036551724137931174
+2021-10-01,Canada,Bakery and cereal products (excluding baby food),159.3,0.017241379310344973
+2021-10-01,Ontario,Food purchased from stores,158.2,0.037377049180327804
+2021-10-01,Ontario,Meat,183.8,0.08821788040260503
+2021-11-01,Canada,Dairy products and eggs,146.7,0.03601694915254239
+2021-11-01,Canada,Bakery and cereal products (excluding baby food),161.6,0.04123711340206193
+2021-11-01,"Toronto, Ontario",All-items,146.8,0.04335465529495397
+2021-11-01,Ontario,Fresh fruit and vegetables,153.6,0.032258064516129004
+2021-11-01,Ontario,Bakery and cereal products (excluding baby food),169.6,0.05276225946617008
+2021-11-01,Ontario,Dairy products and eggs,152.0,0.04972375690607733
+2021-11-01,Canada,Meat,186.3,0.09011117612638975
+2021-11-01,Ontario,Food purchased from stores,160.9,0.052321778940483954
+2021-11-01,Ontario,All-items,146.0,0.050359712230215736
+2021-11-01,Canada,All-items,144.2,0.04720406681191003
+2021-11-01,Canada,Food purchased from stores,157.7,0.047144754316069015
+2021-11-01,Ontario,Meat,184.6,0.07953216374269001
+2021-11-01,Canada,Fresh fruit and vegetables,153.0,0.020000000000000018
+2021-12-01,"Toronto, Ontario",All-items,147.1,0.04697508896797142
+2021-12-01,Ontario,Fresh fruit and vegetables,159.1,0.05434062292909214
+2021-12-01,Ontario,Bakery and cereal products (excluding baby food),172.0,0.05651105651105648
+2021-12-01,Ontario,Meat,185.5,0.08416130917592057
+2021-12-01,Ontario,Food purchased from stores,162.3,0.05939947780678856
+2021-12-01,Ontario,Dairy products and eggs,150.0,0.030219780219780334
+2021-12-01,Canada,Fresh fruit and vegetables,156.9,0.04321808510638303
+2021-12-01,Canada,Bakery and cereal products (excluding baby food),164.1,0.04923273657288996
+2021-12-01,Canada,Dairy products and eggs,145.9,0.03109540636042407
+2021-12-01,Canada,Meat,185.3,0.09000000000000008
+2021-12-01,Canada,Food purchased from stores,158.8,0.05725699067909473
+2021-12-01,Canada,All-items,144.0,0.048034934497816595
+2021-12-01,Ontario,All-items,146.0,0.05187319884726227
+2022-01-01,"Toronto, Ontario",All-items,148.3,0.05177304964539009
+2022-01-01,Ontario,Fresh fruit and vegetables,164.5,0.04843849585723392
+2022-01-01,Ontario,Bakery and cereal products (excluding baby food),172.4,0.07147296457426977
+2022-01-01,Ontario,Dairy products and eggs,153.4,0.05429553264604814
+2022-01-01,Ontario,Meat,187.9,0.09562682215743434
+2022-01-01,Ontario,All-items,147.4,0.05663082437275979
+2022-01-01,Canada,Fresh fruit and vegetables,161.1,0.044069993519118444
+2022-01-01,Canada,Bakery and cereal products (excluding baby food),164.9,0.06939040207522718
+2022-01-01,Canada,Dairy products and eggs,148.0,0.04519774011299438
+2022-01-01,Canada,Meat,189.3,0.10122164048865612
+2022-01-01,Canada,Food purchased from stores,161.5,0.0646011865524061
+2022-01-01,Ontario,Food purchased from stores,165.5,0.06705351386202452
+2022-01-01,Canada,All-items,145.3,0.05137481910274988
+2022-02-01,Canada,All-items,146.8,0.056875449964002955
+2022-02-01,Canada,Food purchased from stores,163.9,0.07404980340760159
+2022-02-01,Canada,Meat,189.3,0.11681415929203554
+2022-02-01,Canada,Bakery and cereal products (excluding baby food),167.6,0.06683640992998097
+2022-02-01,Canada,Fresh fruit and vegetables,162.4,0.03769968051118222
+2022-02-01,Ontario,All-items,148.8,0.06134094151212577
+2022-02-01,Ontario,Food purchased from stores,167.9,0.08322580645161293
+2022-02-01,Ontario,Meat,189.8,0.12976190476190474
+2022-02-01,Ontario,Dairy products and eggs,157.7,0.07939767282683086
+2022-02-01,Ontario,Bakery and cereal products (excluding baby food),175.5,0.07800982800982803
+2022-02-01,Ontario,Fresh fruit and vegetables,165.0,0.04100946372239744
+2022-02-01,"Toronto, Ontario",All-items,149.8,0.05716302046577293
+2022-02-01,Canada,Dairy products and eggs,153.0,0.0691823899371069
+2022-03-01,"Toronto, Ontario",All-items,151.7,0.06456140350877182
+2022-03-01,Ontario,Fresh fruit and vegetables,162.6,0.062050947093402975
+2022-03-01,Ontario,Bakery and cereal products (excluding baby food),180.6,0.1086556169429096
+2022-03-01,Ontario,Dairy products and eggs,165.8,0.11951384199864967
+2022-03-01,Ontario,Meat,189.4,0.1056625802685347
+2022-03-01,Ontario,Food purchased from stores,169.9,0.0912010276172126
+2022-03-01,Canada,Fresh fruit and vegetables,160.7,0.06564986737400513
+2022-03-01,Canada,Bakery and cereal products (excluding baby food),172.2,0.09821428571428559
+2022-03-01,Canada,Dairy products and eggs,157.2,0.08488612836438914
+2022-03-01,Canada,Meat,188.0,0.10458284371327853
+2022-03-01,Canada,Food purchased from stores,165.7,0.08655737704918032
+2022-03-01,Canada,All-items,148.9,0.06661891117478524
+2022-03-01,Ontario,All-items,150.8,0.06950354609929077
+2022-04-01,Ontario,Dairy products and eggs,163.6,0.09431438127090308
+2022-04-01,"Toronto, Ontario",All-items,152.6,0.06638714185883998
+2022-04-01,Ontario,Fresh fruit and vegetables,160.7,0.07133333333333325
+2022-04-01,Ontario,Bakery and cereal products (excluding baby food),181.5,0.12662942271880828
+2022-04-01,Ontario,Meat,191.4,0.0955924441900402
+2022-04-01,Canada,Dairy products and eggs,157.6,0.07871321013004784
+2022-04-01,Ontario,All-items,151.6,0.06911142454160779
+2022-04-01,Ontario,Food purchased from stores,170.4,0.097938144329897
+2022-04-01,Canada,Food purchased from stores,166.8,0.09736842105263155
+2022-04-01,Canada,All-items,149.8,0.0677120456165361
+2022-04-01,Canada,Bakery and cereal products (excluding baby food),173.8,0.11267605633802824
+2022-04-01,Canada,Fresh fruit and vegetables,159.1,0.08972602739726021
+2022-04-01,Canada,Meat,191.1,0.10144092219020173
+2022-05-01,Canada,All-items,151.9,0.07730496453900715
+2022-05-01,Canada,Food purchased from stores,168.5,0.09700520833333348
+2022-05-01,Canada,Meat,191.2,0.09007981755986316
+2022-05-01,Canada,Dairy products and eggs,158.2,0.0791268758526602
+2022-05-01,Canada,Fresh fruit and vegetables,165.0,0.10738255033557054
+2022-05-01,Ontario,All-items,153.7,0.07784011220196341
+2022-05-01,Ontario,Food purchased from stores,172.6,0.1035805626598465
+2022-05-01,Ontario,Meat,193.0,0.10285714285714276
+2022-05-01,Ontario,Dairy products and eggs,164.8,0.09501661129568117
+2022-05-01,Ontario,Bakery and cereal products (excluding baby food),182.3,0.10484848484848497
+2022-05-01,"Toronto, Ontario",All-items,154.4,0.07446068197633982
+2022-05-01,Canada,Bakery and cereal products (excluding baby food),173.8,0.10139416983523453
+2022-05-01,Ontario,Fresh fruit and vegetables,166.7,0.10837765957446788
+2022-06-01,Canada,Bakery and cereal products (excluding baby food),175.5,0.11287254280279013
+2022-06-01,"Toronto, Ontario",All-items,154.9,0.07420249653259381
+2022-06-01,Ontario,Fresh fruit and vegetables,165.9,0.09722222222222232
+2022-06-01,Ontario,Bakery and cereal products (excluding baby food),182.5,0.10807528840315728
+2022-06-01,Ontario,Dairy products and eggs,162.8,0.09408602150537626
+2022-06-01,Ontario,Meat,193.1,0.09467120181405897
+2022-06-01,Canada,Dairy products and eggs,157.8,0.08602890571231936
+2022-06-01,Ontario,All-items,154.4,0.07896575821104124
+2022-06-01,Canada,Fresh fruit and vegetables,163.6,0.09798657718120807
+2022-06-01,Canada,All-items,152.9,0.0813295615275813
+2022-06-01,Canada,Food purchased from stores,168.3,0.09427828348504552
+2022-06-01,Canada,Meat,190.8,0.0797962648556878
+2022-06-01,Ontario,Food purchased from stores,172.2,0.10031948881789132
+2022-07-01,Ontario,Fresh fruit and vegetables,166.0,0.1088844355377423
+2022-07-01,Ontario,Bakery and cereal products (excluding baby food),187.1,0.13325257419745618
+2022-07-01,Ontario,Dairy products and eggs,165.2,0.09114927344782031
+2022-07-01,Ontario,Meat,193.0,0.07162687395891165
+2022-07-01,Ontario,Food purchased from stores,173.4,0.10305343511450382
+2022-07-01,Canada,Bakery and cereal products (excluding baby food),178.7,0.13172894236858768
+2022-07-01,Canada,Fresh fruit and vegetables,163.5,0.101010101010101
+2022-07-01,Canada,Dairy products and eggs,159.4,0.0887978142076502
+2022-07-01,Canada,Food purchased from stores,169.7,0.09909326424870457
+2022-07-01,"Toronto, Ontario",All-items,155.4,0.0746887966804981
+2022-07-01,Ontario,All-items,154.6,0.07585247042449561
+2022-07-01,Canada,All-items,153.1,0.07589599437807437
+2022-07-01,Canada,Meat,192.0,0.06135986733001664
+2022-08-01,Canada,Meat,193.9,0.06479956068094461
+2022-08-01,Canada,Food purchased from stores,171.4,0.10795087265675507
+2022-08-01,"Toronto, Ontario",All-items,154.8,0.06758620689655181
+2022-08-01,Ontario,Fresh fruit and vegetables,166.0,0.11634162743779419
+2022-08-01,Ontario,Bakery and cereal products (excluding baby food),190.8,0.15776699029126218
+2022-08-01,Ontario,Dairy products and eggs,164.9,0.07989521938441402
+2022-08-01,Canada,All-items,152.6,0.07012622720897621
+2022-08-01,Ontario,Food purchased from stores,175.2,0.11026615969581743
+2022-08-01,Ontario,All-items,154.1,0.06939625260235949
+2022-08-01,Canada,Fresh fruit and vegetables,163.3,0.11088435374149674
+2022-08-01,Canada,Bakery and cereal products (excluding baby food),182.4,0.15078864353312316
+2022-08-01,Canada,Dairy products and eggs,159.4,0.07484828051247461
+2022-08-01,Ontario,Meat,196.1,0.07041484716157198
+2022-09-01,"Toronto, Ontario",All-items,154.9,0.06607019958706117
+2022-09-01,Ontario,Fresh fruit and vegetables,162.7,0.11514736120630564
+2022-09-01,Ontario,Bakery and cereal products (excluding baby food),192.1,0.16494845360824728
+2022-09-01,Ontario,Dairy products and eggs,169.4,0.11154855643044614
+2022-09-01,Ontario,Meat,200.0,0.08754758020663411
+2022-09-01,Canada,Fresh fruit and vegetables,161.9,0.1219681219681219
+2022-09-01,Ontario,All-items,154.1,0.06717451523545703
+2022-09-01,Canada,Bakery and cereal products (excluding baby food),183.5,0.16065781151170144
+2022-09-01,Canada,Dairy products and eggs,162.8,0.10000000000000009
+2022-09-01,Canada,Food purchased from stores,173.1,0.11389961389961378
+2022-09-01,Ontario,Food purchased from stores,176.4,0.1150442477876108
+2022-09-01,Canada,Meat,198.8,0.07575757575757569
+2022-09-01,Canada,All-items,152.7,0.06857942617214818
+2022-10-01,"Toronto, Ontario",All-items,155.9,0.06416382252559738
+2022-10-01,Canada,All-items,153.8,0.06879777623349548
+2022-10-01,Canada,Food purchased from stores,173.0,0.11039794608472397
+2022-10-01,Canada,Meat,197.4,0.05505077498663824
+2022-10-01,Canada,Dairy products and eggs,162.6,0.10914051841746253
+2022-10-01,Canada,Bakery and cereal products (excluding baby food),186.3,0.1694915254237288
+2022-10-01,Canada,Fresh fruit and vegetables,159.0,0.10034602076124566
+2022-10-01,Ontario,All-items,155.2,0.06520247083047348
+2022-10-01,Ontario,Food purchased from stores,175.2,0.10745891276864739
+2022-10-01,Ontario,Meat,196.4,0.06855277475516863
+2022-10-01,Ontario,Dairy products and eggs,166.9,0.11044577511643383
+2022-10-01,Ontario,Bakery and cereal products (excluding baby food),193.8,0.16187050359712218
+2022-10-01,Ontario,Fresh fruit and vegetables,158.6,0.09003436426116829
+2022-11-01,"Toronto, Ontario",All-items,156.3,0.0647138964577656
+2022-11-01,Canada,All-items,154.0,0.06796116504854388
+2022-11-01,Canada,Food purchased from stores,175.7,0.11414077362079889
+2022-11-01,Canada,Meat,197.9,0.06226516371443913
+2022-11-01,Ontario,Fresh fruit and vegetables,170.4,0.109375
+2022-11-01,Canada,Dairy products and eggs,164.3,0.11997273346966608
+2022-11-01,Canada,Bakery and cereal products (excluding baby food),186.9,0.15655940594059414
+2022-11-01,Canada,Fresh fruit and vegetables,169.9,0.11045751633986933
+2022-11-01,Ontario,All-items,155.4,0.06438356164383574
+2022-11-01,Ontario,Food purchased from stores,178.4,0.1087632069608453
+2022-11-01,Ontario,Meat,194.3,0.05254604550379205
+2022-11-01,Ontario,Dairy products and eggs,171.0,0.125
+2022-11-01,Ontario,Bakery and cereal products (excluding baby food),194.4,0.14622641509433976
+2022-12-01,Canada,Food purchased from stores,176.3,0.11020151133501255
+2022-12-01,Canada,All-items,153.1,0.06319444444444433
+2022-12-01,Canada,Meat,196.5,0.06044252563410679
+2022-12-01,Canada,Dairy products and eggs,163.4,0.11994516792323506
+2022-12-01,Canada,Bakery and cereal products (excluding baby food),188.3,0.14747105423522244
+2022-12-01,Canada,Fresh fruit and vegetables,176.4,0.124282982791587
+2022-12-01,Ontario,All-items,154.8,0.0602739726027397
+2022-12-01,Ontario,Food purchased from stores,180.2,0.11028958718422666
+2022-12-01,Ontario,Meat,196.5,0.059299191374662996
+2022-12-01,Ontario,Dairy products and eggs,169.2,0.1279999999999999
+2022-12-01,Ontario,Bakery and cereal products (excluding baby food),197.5,0.1482558139534884
+2022-12-01,Ontario,Fresh fruit and vegetables,178.3,0.12067881835323702
+2022-12-01,"Toronto, Ontario",All-items,155.9,0.05982324949014295
+2023-01-01,Ontario,Dairy products and eggs,174.0,0.13428943937418514
+2023-01-01,Ontario,Bakery and cereal products (excluding baby food),196.3,0.13863109048723898
+2023-01-01,Ontario,Fresh fruit and vegetables,184.7,0.12279635258358645
+2023-01-01,"Toronto, Ontario",All-items,156.8,0.05731625084288594
+2023-01-01,Ontario,All-items,155.7,0.05630936227951144
+2023-01-01,Canada,Fresh fruit and vegetables,182.1,0.13035381750465547
+2023-01-01,Canada,All-items,153.9,0.05918788713007572
+2023-01-01,Canada,Dairy products and eggs,166.8,0.12702702702702706
+2023-01-01,Canada,Meat,203.1,0.07290015847860531
+2023-01-01,Canada,Food purchased from stores,179.9,0.11393188854489167
+2023-01-01,Ontario,Food purchased from stores,183.8,0.11057401812688838
+2023-01-01,Canada,Bakery and cereal products (excluding baby food),189.1,0.14675560946027888
+2023-01-01,Ontario,Meat,201.7,0.07344332091538042
+2023-02-01,Canada,Bakery and cereal products (excluding baby food),191.6,0.1431980906921242
+2023-02-01,Canada,All-items,154.5,0.05245231607629419
+2023-02-01,Canada,Fresh fruit and vegetables,182.0,0.1206896551724137
+2023-02-01,Ontario,All-items,156.4,0.051075268817204256
+2023-02-01,Ontario,Food purchased from stores,185.2,0.10303752233472285
+2023-02-01,Canada,Meat,201.0,0.06180665610142633
+2023-02-01,Ontario,Meat,199.2,0.04952581664910416
+2023-02-01,Canada,Food purchased from stores,181.2,0.1055521659548504
+2023-02-01,Ontario,Bakery and cereal products (excluding baby food),200.6,0.14301994301994303
+2023-02-01,Canada,Dairy products and eggs,167.7,0.0960784313725489
+2023-02-01,Ontario,Fresh fruit and vegetables,185.2,0.12242424242424232
+2023-02-01,"Toronto, Ontario",All-items,157.4,0.05073431241655535
+2023-02-01,Ontario,Dairy products and eggs,174.0,0.1033608116677236
+2023-03-01,Canada,All-items,155.3,0.04298186702484896
+2023-03-01,Canada,Food purchased from stores,181.7,0.09656004828002418
+2023-03-01,Canada,Meat,200.4,0.06595744680851068
+2023-03-01,Canada,Dairy products and eggs,169.5,0.0782442748091603
+2023-03-01,Canada,Bakery and cereal products (excluding baby food),195.4,0.13472706155632985
+2023-03-01,Canada,Fresh fruit and vegetables,175.3,0.09085252022402002
+2023-03-01,Ontario,All-items,157.3,0.0431034482758621
+2023-03-01,Ontario,Fresh fruit and vegetables,177.2,0.08979089790897898
+2023-03-01,Ontario,Meat,200.2,0.05702217529039055
+2023-03-01,Ontario,Food purchased from stores,186.1,0.09535020600353139
+2023-03-01,Ontario,Bakery and cereal products (excluding baby food),205.4,0.13732004429678857
+2023-03-01,Ontario,Dairy products and eggs,177.6,0.07117008443908301
+2023-03-01,"Toronto, Ontario",All-items,158.5,0.04482531311799609
+2023-04-01,Canada,All-items,156.4,0.044058744993324295
+2023-04-01,"Toronto, Ontario",All-items,158.9,0.041284403669724856
+2023-04-01,Ontario,Fresh fruit and vegetables,175.1,0.08960796515245795
+2023-04-01,Ontario,Dairy products and eggs,174.4,0.0660146699266504
+2023-04-01,Ontario,Food purchased from stores,185.9,0.090962441314554
+2023-04-01,Ontario,Bakery and cereal products (excluding baby food),207.0,0.14049586776859502
+2023-04-01,Canada,Fresh fruit and vegetables,172.8,0.0861093651791327
+2023-04-01,Canada,Bakery and cereal products (excluding baby food),196.7,0.13176064441887214
+2023-04-01,Canada,Dairy products and eggs,168.7,0.07043147208121825
+2023-04-01,Canada,Meat,203.9,0.06698063840920998
+2023-04-01,Canada,Food purchased from stores,182.0,0.0911270983213428
+2023-04-01,Ontario,All-items,157.9,0.04155672823219003
+2023-04-01,Ontario,Meat,202.2,0.056426332288401104
+2023-05-01,Canada,Fresh fruit and vegetables,177.3,0.07454545454545469
+2023-05-01,Canada,All-items,157.0,0.03357472021066488
+2023-05-01,Canada,Food purchased from stores,183.7,0.09020771513353099
+2023-05-01,Canada,Meat,203.2,0.06276150627615062
+2023-05-01,Canada,Dairy products and eggs,170.2,0.07585335018963346
+2023-05-01,Canada,Bakery and cereal products (excluding baby food),198.9,0.14441887226697347
+2023-05-01,Ontario,All-items,158.5,0.031229668184775683
+2023-05-01,Ontario,Meat,202.5,0.04922279792746109
+2023-05-01,Ontario,Dairy products and eggs,177.7,0.07827669902912615
+2023-05-01,Ontario,Bakery and cereal products (excluding baby food),208.8,0.1453647833241909
+2023-05-01,Ontario,Fresh fruit and vegetables,179.1,0.0743851229754049
+2023-05-01,"Toronto, Ontario",All-items,159.8,0.03497409326424883
+2023-05-01,Ontario,Food purchased from stores,187.7,0.08748551564310536
+2023-06-01,"Toronto, Ontario",All-items,159.7,0.030987734021949542
+2023-06-01,Ontario,Fresh fruit and vegetables,180.3,0.08679927667269438
+2023-06-01,Ontario,Bakery and cereal products (excluding baby food),207.3,0.13589041095890408
+2023-06-01,Ontario,Dairy products and eggs,176.0,0.08108108108108092
+2023-06-01,Ontario,Meat,200.4,0.03780424650440195
+2023-06-01,Ontario,Food purchased from stores,186.9,0.08536585365853666
+2023-06-01,Canada,Fresh fruit and vegetables,178.6,0.09168704156479213
+2023-06-01,Canada,Bakery and cereal products (excluding baby food),197.7,0.1264957264957265
+2023-06-01,Canada,Dairy products and eggs,169.8,0.07604562737642584
+2023-06-01,Canada,Meat,204.0,0.0691823899371069
+2023-06-01,Canada,Food purchased from stores,183.6,0.09090909090909083
+2023-06-01,Canada,All-items,157.2,0.028122956180510084
+2023-06-01,Ontario,All-items,158.4,0.02590673575129543
+2023-07-01,Canada,All-items,158.1,0.032658393207054104
+2023-07-01,Canada,Food purchased from stores,184.1,0.08485562757807896
+2023-07-01,Canada,Meat,206.7,0.07656249999999987
+2023-07-01,Canada,Bakery and cereal products (excluding baby food),199.3,0.11527700055959733
+2023-07-01,Canada,Fresh fruit and vegetables,174.7,0.0685015290519877
+2023-07-01,Ontario,All-items,159.6,0.03234152652005173
+2023-07-01,Ontario,Food purchased from stores,187.4,0.08073817762399083
+2023-07-01,Ontario,Meat,204.1,0.05751295336787554
+2023-07-01,Ontario,Dairy products and eggs,177.1,0.07203389830508478
+2023-07-01,Ontario,Bakery and cereal products (excluding baby food),208.7,0.11544628540887225
+2023-07-01,Ontario,Fresh fruit and vegetables,175.1,0.054819277108433706
+2023-07-01,"Toronto, Ontario",All-items,161.1,0.036679536679536495
+2023-07-01,Canada,Dairy products and eggs,170.8,0.0715181932245923
+2023-08-01,"Toronto, Ontario",All-items,161.4,0.042635658914728536
+2023-08-01,Ontario,Fresh fruit and vegetables,172.1,0.0367469879518072
+2023-08-01,Ontario,Bakery and cereal products (excluding baby food),207.3,0.08647798742138368
+2023-08-01,Ontario,Dairy products and eggs,174.8,0.060036385688295946
+2023-08-01,Ontario,Meat,205.4,0.04742478327383992
+2023-08-01,Ontario,Food purchased from stores,186.8,0.06621004566210065
+2023-08-01,Canada,Fresh fruit and vegetables,171.1,0.04776484996938146
+2023-08-01,Canada,Bakery and cereal products (excluding baby food),197.9,0.08497807017543857
+2023-08-01,Canada,Dairy products and eggs,168.8,0.05897114178168139
+2023-08-01,Canada,Meat,206.6,0.06549767921609062
+2023-08-01,Canada,Food purchased from stores,183.3,0.06942823803967335
+2023-08-01,Canada,All-items,158.7,0.03997378768020976
+2023-08-01,Ontario,All-items,159.9,0.03763789746917601
+2023-09-01,Ontario,Dairy products and eggs,175.3,0.03482880755608031
+2023-09-01,"Toronto, Ontario",All-items,161.3,0.04131697869593287
+2023-09-01,Ontario,Fresh fruit and vegetables,172.3,0.0590043023970499
+2023-09-01,Ontario,Bakery and cereal products (excluding baby food),205.3,0.06871421134825617
+2023-09-01,Ontario,Meat,204.8,0.02400000000000002
+2023-09-01,Canada,Dairy products and eggs,169.1,0.038697788697788615
+2023-09-01,Ontario,All-items,159.7,0.03634003893575599
+2023-09-01,Ontario,Food purchased from stores,186.2,0.05555555555555536
+2023-09-01,Canada,All-items,158.5,0.037982973149967236
+2023-09-01,Canada,Food purchased from stores,183.1,0.05777007510109766
+2023-09-01,Canada,Bakery and cereal products (excluding baby food),196.7,0.0719346049046321
+2023-09-01,Canada,Fresh fruit and vegetables,170.9,0.0555898702903026
+2023-09-01,Canada,Meat,207.5,0.043762575452716224
+2023-10-01,Canada,All-items,158.6,0.031209362808842567
+2023-10-01,Canada,Food purchased from stores,182.4,0.054335260115607076
+2023-10-01,Canada,Meat,206.2,0.04457953394123604
+2023-10-01,Canada,Dairy products and eggs,168.1,0.03382533825338263
+2023-10-01,Canada,Fresh fruit and vegetables,166.8,0.049056603773584895
+2023-10-01,Ontario,All-items,160.3,0.03286082474226815
+2023-10-01,Ontario,Food purchased from stores,185.6,0.05936073059360725
+2023-10-01,Ontario,Meat,203.2,0.03462321792260692
+2023-10-01,Ontario,Dairy products and eggs,174.0,0.04254044337926888
+2023-10-01,Ontario,Bakery and cereal products (excluding baby food),206.2,0.06398348813209487
+2023-10-01,Ontario,Fresh fruit and vegetables,169.1,0.0662042875157629
+2023-10-01,Canada,Bakery and cereal products (excluding baby food),197.6,0.06065485775630686
+2023-10-01,"Toronto, Ontario",All-items,162.2,0.04041051956382291
+2023-11-01,Ontario,Food purchased from stores,187.4,0.05044843049327352
+2023-11-01,Canada,Meat,207.7,0.049519959575543115
+2023-11-01,Canada,Dairy products and eggs,170.0,0.0346926354230066
+2023-11-01,Canada,Bakery and cereal products (excluding baby food),197.9,0.058855002675227475
+2023-11-01,Canada,Fresh fruit and vegetables,175.7,0.034137728075338325
+2023-11-01,Ontario,All-items,160.6,0.03346203346203347
+2023-11-01,Ontario,Meat,205.0,0.05506948018528046
+2023-11-01,Ontario,Dairy products and eggs,176.8,0.03391812865497079
+2023-11-01,Ontario,Bakery and cereal products (excluding baby food),207.9,0.06944444444444442
+2023-11-01,Ontario,Fresh fruit and vegetables,177.2,0.039906103286384775
+2023-11-01,"Toronto, Ontario",All-items,162.3,0.03838771593090207
+2023-11-01,Canada,Food purchased from stores,183.9,0.04667046101309058
+2023-11-01,Canada,All-items,158.8,0.03116883116883118
+2023-12-01,"Toronto, Ontario",All-items,162.4,0.0416933932007697
+2023-12-01,Canada,Food purchased from stores,184.5,0.046511627906976605
+2023-12-01,Canada,Meat,207.4,0.055470737913486
+2023-12-01,Canada,Dairy products and eggs,168.9,0.033659730722154224
+2023-12-01,Canada,Bakery and cereal products (excluding baby food),197.9,0.050982474774296405
+2023-12-01,Canada,Fresh fruit and vegetables,179.5,0.017573696145124718
+2023-12-01,Canada,All-items,158.3,0.03396472893533642
+2023-12-01,Ontario,Food purchased from stores,187.0,0.037735849056603765
+2023-12-01,Ontario,Meat,203.4,0.03511450381679393
+2023-12-01,Ontario,Dairy products and eggs,174.3,0.030141843971631443
+2023-12-01,Ontario,Bakery and cereal products (excluding baby food),206.9,0.047594936708860835
+2023-12-01,Ontario,Fresh fruit and vegetables,180.2,0.010656197420078284
+2023-12-01,Ontario,All-items,160.0,0.03359173126614978
+2024-01-01,"Toronto, Ontario",All-items,162.0,0.03316326530612246
+2024-01-01,Ontario,Fresh fruit and vegetables,183.6,-0.005955603681645827
+2024-01-01,Ontario,Bakery and cereal products (excluding baby food),205.1,0.04482934284258788
+2024-01-01,Ontario,Dairy products and eggs,175.8,0.010344827586207028
+2024-01-01,Ontario,Meat,206.2,0.02231036192364888
+2024-01-01,Canada,Food purchased from stores,186.0,0.033907726514730285
+2024-01-01,Ontario,All-items,159.9,0.026974951830443183
+2024-01-01,Canada,Dairy products and eggs,169.3,0.014988009592326046
+2024-01-01,Canada,Meat,208.8,0.028064992614475814
+2024-01-01,Canada,All-items,158.3,0.028589993502274202
+2024-01-01,Ontario,Food purchased from stores,188.9,0.027747551686615912
+2024-01-01,Canada,Bakery and cereal products (excluding baby food),197.0,0.04177683765203599
+2024-01-01,Canada,Fresh fruit and vegetables,184.4,0.012630422844591038
+2024-02-01,Ontario,Bakery and cereal products (excluding baby food),205.7,0.025423728813559254
+2024-02-01,Canada,All-items,158.8,0.02783171521035599
+2024-02-01,Canada,Food purchased from stores,185.6,0.02428256070640189
+2024-02-01,Canada,Meat,206.2,0.025870646766169125
+2024-02-01,Canada,Dairy products and eggs,169.1,0.008348240906380422
+2024-02-01,Canada,Bakery and cereal products (excluding baby food),197.7,0.03183716075156573
+2024-02-01,Canada,Fresh fruit and vegetables,183.4,0.007692307692307665
+2024-02-01,Ontario,All-items,160.2,0.024296675191815664
+2024-02-01,Ontario,Food purchased from stores,187.9,0.014578833693304594
+2024-02-01,Ontario,Meat,205.0,0.029116465863453955
+2024-02-01,Ontario,Dairy products and eggs,174.6,0.0034482758620688614
+2024-02-01,"Toronto, Ontario",All-items,162.2,0.030495552731893083
+2024-02-01,Ontario,Fresh fruit and vegetables,180.1,-0.027537796976241924
+2024-03-01,Ontario,Food purchased from stores,187.7,0.008597528210639416
+2024-03-01,Ontario,Meat,206.9,0.03346653346653361
+2024-03-01,Canada,All-items,159.8,0.028976175144880933
+2024-03-01,Canada,Food purchased from stores,185.1,0.01871216290588884
+2024-03-01,Canada,Meat,207.2,0.03393213572854292
+2024-03-01,Canada,Dairy products and eggs,170.7,0.007079646017698948
+2024-03-01,Ontario,Bakery and cereal products (excluding baby food),206.3,0.004381694255112034
+2024-03-01,Ontario,Fresh fruit and vegetables,172.0,-0.02934537246049651
+2024-03-01,"Toronto, Ontario",All-items,163.4,0.0309148264984227
+2024-03-01,Canada,Bakery and cereal products (excluding baby food),197.0,0.008188331627430934
+2024-03-01,Canada,Fresh fruit and vegetables,175.8,0.0028522532800911993
+2024-03-01,Ontario,All-items,161.4,0.026064844246662444
+2024-03-01,Ontario,Dairy products and eggs,176.4,-0.006756756756756688
+2024-04-01,Canada,Bakery and cereal products (excluding baby food),197.0,0.0015251652262329163
+2024-04-01,Canada,Dairy products and eggs,171.3,0.015411973918198152
+2024-04-01,Ontario,Bakery and cereal products (excluding baby food),206.1,-0.004347826086956497
+2024-04-01,Canada,Meat,207.6,0.018146150073565348
+2024-04-01,Canada,Food purchased from stores,184.5,0.013736263736263687
+2024-04-01,Canada,All-items,160.6,0.026854219948849067
+2024-04-01,Canada,Fresh fruit and vegetables,172.2,-0.003472222222222321
+2024-04-01,Ontario,All-items,162.2,0.027232425585813624
+2024-04-01,Ontario,Food purchased from stores,187.4,0.008068854222700317
+2024-04-01,Ontario,Meat,204.6,0.011869436201780381
+2024-04-01,Ontario,Dairy products and eggs,178.2,0.02178899082568808
+2024-04-01,Ontario,Fresh fruit and vegetables,171.4,-0.021130782410051285
+2024-04-01,"Toronto, Ontario",All-items,164.0,0.0320956576463185
+2024-05-01,Canada,Bakery and cereal products (excluding baby food),198.8,-0.0005027652086475598
+2024-05-01,Canada,Dairy products and eggs,171.0,0.004700352526439522
+2024-05-01,Canada,Meat,210.2,0.034448818897637734
+2024-05-01,"Toronto, Ontario",All-items,165.3,0.034418022528160286
+2024-05-01,Canada,All-items,161.5,0.02866242038216571
+2024-05-01,Canada,Fresh fruit and vegetables,177.2,-0.0005640157924423628
+2024-05-01,Canada,Food purchased from stores,186.5,0.015242242787153026
+2024-05-01,Ontario,All-items,163.2,0.029652996845425772
+2024-05-01,Ontario,Food purchased from stores,189.1,0.0074587107085775095
+2024-05-01,Ontario,Meat,207.5,0.024691358024691468
+2024-05-01,Ontario,Bakery and cereal products (excluding baby food),208.2,-0.00287356321839094
+2024-05-01,Ontario,Dairy products and eggs,177.4,-0.0016882386043892694
+2024-05-01,Ontario,Fresh fruit and vegetables,174.7,-0.024567280848687867
+2024-06-01,Canada,All-items,161.4,0.026717557251908497
+2024-06-01,Canada,Food purchased from stores,187.5,0.0212418300653594
+2024-06-01,Canada,Meat,211.3,0.03578431372549029
+2024-06-01,Canada,Dairy products and eggs,173.7,0.0229681978798586
+2024-06-01,Canada,Fresh fruit and vegetables,178.0,-0.0033594624860021627
+2024-06-01,Ontario,All-items,163.1,0.029671717171717127
+2024-06-01,Ontario,Meat,209.2,0.04391217564870242
+2024-06-01,Ontario,Dairy products and eggs,180.4,0.025000000000000133
+2024-06-01,Ontario,Bakery and cereal products (excluding baby food),209.1,0.008683068017365958
+2024-06-01,Ontario,Fresh fruit and vegetables,176.6,-0.020521353300055556
+2024-06-01,"Toronto, Ontario",All-items,165.1,0.033813400125234816
+2024-06-01,Ontario,Food purchased from stores,191.2,0.02300695559122512
+2024-06-01,Canada,Bakery and cereal products (excluding baby food),198.2,0.0025290844714214167
+2024-07-01,Canada,All-items,162.1,0.025300442757748343
+2024-07-01,Canada,Food purchased from stores,188.0,0.021184139054861495
+2024-07-01,Canada,Meat,212.8,0.029511369134010756
+2024-07-01,Canada,Bakery and cereal products (excluding baby food),199.1,-0.0010035122930256435
+2024-07-01,Canada,Fresh fruit and vegetables,179.4,0.026903262736119204
+2024-07-01,Ontario,All-items,163.9,0.02694235588972438
+2024-07-01,Ontario,Food purchased from stores,191.5,0.02187833511205972
+2024-07-01,Ontario,Meat,210.9,0.033317001469867824
+2024-07-01,Ontario,Dairy products and eggs,180.7,0.02032749858836813
+2024-07-01,Ontario,Bakery and cereal products (excluding baby food),209.6,0.004312410158121782
+2024-07-01,Ontario,Fresh fruit and vegetables,178.0,0.016561964591661926
+2024-07-01,"Toronto, Ontario",All-items,166.1,0.031036623215394243
+2024-07-01,Canada,Dairy products and eggs,174.4,0.021077283372365363
+2024-08-01,"Toronto, Ontario",All-items,165.7,0.02664188351920682
+2024-08-01,Ontario,Fresh fruit and vegetables,175.2,0.01801278326554323
+2024-08-01,Ontario,Bakery and cereal products (excluding baby food),208.6,0.006271104679208772
+2024-08-01,Ontario,Meat,211.8,0.031158714703018564
+2024-08-01,Ontario,Food purchased from stores,190.8,0.021413276231263323
+2024-08-01,Ontario,Dairy products and eggs,179.4,0.02631578947368407
+2024-08-01,Canada,Fresh fruit and vegetables,176.3,0.030391583869082472
+2024-08-01,Canada,Bakery and cereal products (excluding baby food),198.4,0.002526528549772644
+2024-08-01,Canada,Dairy products and eggs,174.4,0.033175355450236976
+2024-08-01,Canada,Meat,212.5,0.028557599225556674
+2024-08-01,Canada,Food purchased from stores,187.7,0.024004364429896174
+2024-08-01,Ontario,All-items,163.3,0.021263289555972564
+2024-08-01,Canada,All-items,161.8,0.01953371140516702
+2024-09-01,"Toronto, Ontario",All-items,165.2,0.02417854928704255
+2024-09-01,Ontario,Fresh fruit and vegetables,176.9,0.026697620429483315
+2024-09-01,Ontario,Dairy products and eggs,181.0,0.03251568739304034
+2024-09-01,Ontario,Meat,211.4,0.0322265625
+2024-09-01,Ontario,Food purchased from stores,190.6,0.023630504833512367
+2024-09-01,Ontario,Bakery and cereal products (excluding baby food),204.0,-0.006332196785192479
+2024-09-01,Canada,Fresh fruit and vegetables,176.3,0.03159742539496779
+2024-09-01,Ontario,All-items,162.8,0.01941139636819056
+2024-09-01,Canada,All-items,161.1,0.016403785488958933
+2024-09-01,Canada,Dairy products and eggs,174.2,0.030159668835008757
+2024-09-01,Canada,Meat,214.0,0.031325301204819356
+2024-09-01,Canada,Bakery and cereal products (excluding baby food),196.4,-0.0015251652262328053
+2024-09-01,Canada,Food purchased from stores,187.5,0.02403058438012029
+2024-10-01,Canada,All-items,161.8,0.020176544766708826
+2024-10-01,Canada,Food purchased from stores,187.4,0.027412280701754277
+2024-10-01,Canada,Meat,213.2,0.03394762366634341
+2024-10-01,Canada,Dairy products and eggs,174.1,0.03569303985722794
+2024-10-01,Canada,Fresh fruit and vegetables,171.5,0.028177458033572966
+2024-10-01,Ontario,All-items,163.5,0.019962570180910744
+2024-10-01,Ontario,Meat,212.4,0.045275590551181244
+2024-10-01,Ontario,Dairy products and eggs,179.4,0.03103448275862064
+2024-10-01,Ontario,Bakery and cereal products (excluding baby food),208.3,0.010184287099903155
+2024-10-01,Ontario,Fresh fruit and vegetables,172.5,0.020106445890005986
+2024-10-01,"Toronto, Ontario",All-items,165.9,0.02281134401972884
+2024-10-01,Canada,Bakery and cereal products (excluding baby food),199.1,0.007591093117408798
+2024-10-01,Ontario,Food purchased from stores,190.9,0.028556034482758674
+2024-11-01,Canada,Bakery and cereal products (excluding baby food),200.2,0.011622031328953897
+2024-11-01,"Toronto, Ontario",All-items,166.0,0.022797288971041274
+2024-11-01,Ontario,Fresh fruit and vegetables,176.4,-0.004514672686230181
+2024-11-01,Ontario,Bakery and cereal products (excluding baby food),208.6,0.0033670033670032407
+2024-11-01,Ontario,Dairy products and eggs,182.3,0.031108597285067763
+2024-11-01,Ontario,Meat,213.1,0.039512195121951255
+2024-11-01,Canada,Dairy products and eggs,175.7,0.03352941176470581
+2024-11-01,Ontario,All-items,163.5,0.018057285180572924
+2024-11-01,Canada,Fresh fruit and vegetables,176.7,0.00569151963574277
+2024-11-01,Canada,All-items,161.8,0.018891687657430767
+2024-11-01,Canada,Food purchased from stores,188.6,0.025557368134855762
+2024-11-01,Canada,Meat,214.6,0.03322099181511806
+2024-11-01,Ontario,Food purchased from stores,192.0,0.0245464247598719
+2024-12-01,Ontario,Bakery and cereal products (excluding baby food),207.9,0.004833252779120389
+2024-12-01,Ontario,Dairy products and eggs,179.8,0.031554790590935244
+2024-12-01,Ontario,Meat,211.9,0.04178957718780718
+2024-12-01,Ontario,Food purchased from stores,191.0,0.021390374331550888
+2024-12-01,Ontario,All-items,162.7,0.016874999999999973
+2024-12-01,Canada,Dairy products and eggs,174.3,0.03197158081705154
+2024-12-01,Canada,Bakery and cereal products (excluding baby food),198.0,0.00050530570995444
+2024-12-01,Canada,Meat,213.9,0.03134040501446478
+2024-12-01,Canada,Food purchased from stores,188.0,0.01897018970189701
+2024-12-01,Ontario,Fresh fruit and vegetables,182.5,0.012763596004439659
+2024-12-01,Canada,Fresh fruit and vegetables,181.5,0.011142061281337101
+2024-12-01,Canada,All-items,161.2,0.01831964624131377
+2024-12-01,"Toronto, Ontario",All-items,165.4,0.018472906403940836
+2025-01-01,Canada,Meat,214.0,0.02490421455938696
+2025-01-01,Canada,Food purchased from stores,189.5,0.018817204301075252
+2025-01-01,"Toronto, Ontario",All-items,165.0,0.0185185185185186
+2025-01-01,Ontario,Fresh fruit and vegetables,190.6,0.03812636165577343
+2025-01-01,Ontario,Bakery and cereal products (excluding baby food),206.5,0.006825938566553003
+2025-01-01,Ontario,Dairy products and eggs,180.0,0.023890784982935065
+2025-01-01,Canada,All-items,161.3,0.01895135818066951
+2025-01-01,Ontario,Food purchased from stores,192.3,0.017998941238750676
+2025-01-01,Ontario,All-items,162.6,0.016885553470919357
+2025-01-01,Canada,Fresh fruit and vegetables,188.6,0.022776572668112838
+2025-01-01,Canada,Bakery and cereal products (excluding baby food),198.5,0.0076142131979695105
+2025-01-01,Canada,Dairy products and eggs,174.6,0.03130537507383324
+2025-01-01,Ontario,Meat,210.9,0.02279340446168776
+2025-02-01,"Toronto, Ontario",All-items,166.8,0.02836004932182501
+2025-02-01,Ontario,Fresh fruit and vegetables,188.0,0.04386451971127148
+2025-02-01,Ontario,Bakery and cereal products (excluding baby food),209.8,0.019931939718036196
+2025-02-01,Ontario,Meat,210.7,0.027804878048780513
+2025-02-01,Ontario,Food purchased from stores,193.3,0.028738690792974975
+2025-02-01,Canada,Bakery and cereal products (excluding baby food),201.9,0.0212443095599395
+2025-02-01,Canada,Fresh fruit and vegetables,188.0,0.025081788440566966
+2025-02-01,Canada,Dairy products and eggs,175.9,0.04021289178001197
+2025-02-01,Canada,Meat,213.3,0.034432589718719875
+2025-02-01,Canada,All-items,163.0,0.02644836272040285
+2025-02-01,Ontario,All-items,164.6,0.027465667915106184
+2025-02-01,Canada,Food purchased from stores,190.8,0.028017241379310498
+2025-02-01,Ontario,Dairy products and eggs,180.6,0.03436426116838498
+2025-03-01,Canada,Fresh fruit and vegetables,180.7,0.027872582480090946
+2025-03-01,Ontario,All-items,165.1,0.022924411400247813
+2025-03-01,Ontario,Fresh fruit and vegetables,178.6,0.03837209302325584
+2025-03-01,Ontario,Bakery and cereal products (excluding baby food),205.1,-0.005816771691711131
+2025-03-01,Ontario,Dairy products and eggs,182.8,0.03628117913832196
+2025-03-01,Ontario,Meat,213.6,0.03238279362010621
+2025-03-01,"Toronto, Ontario",All-items,167.0,0.022031823745410017
+2025-03-01,Canada,Bakery and cereal products (excluding baby food),197.8,0.004060913705583813
+2025-03-01,Canada,Dairy products and eggs,177.6,0.040421792618629215
+2025-03-01,Canada,Meat,216.3,0.04391891891891908
+2025-03-01,Canada,Food purchased from stores,191.0,0.03187466234467862
+2025-03-01,Ontario,Food purchased from stores,193.0,0.02823654768247219
+2025-03-01,Canada,All-items,163.5,0.023153942428034924
+2025-04-01,Canada,All-items,163.4,0.01743462017434627
+2025-04-01,Canada,Food purchased from stores,191.6,0.03848238482384825
+2025-04-01,Canada,Meat,219.2,0.05587668593448947
+2025-04-01,Canada,Dairy products and eggs,175.9,0.026853473438412045
+2025-04-01,Canada,Bakery and cereal products (excluding baby food),197.6,0.003045685279187804
+2025-04-01,Canada,Fresh fruit and vegetables,179.7,0.04355400696864109
+2025-04-01,Ontario,All-items,164.8,0.01602959309494456
+2025-04-01,Ontario,Food purchased from stores,194.0,0.03521878335112061
+2025-04-01,Ontario,Meat,217.6,0.06353861192570864
+2025-04-01,Ontario,Bakery and cereal products (excluding baby food),205.4,-0.003396409509946574
+2025-04-01,Ontario,Dairy products and eggs,181.1,0.016273849607183033
+2025-04-01,Ontario,Fresh fruit and vegetables,178.2,0.03967327887981331
+2025-04-01,"Toronto, Ontario",All-items,166.8,0.017073170731707332
+2025-05-01,Canada,Food purchased from stores,192.7,0.03324396782841821
+2025-05-01,Canada,Meat,221.2,0.05233111322549955
+2025-05-01,Canada,Dairy products and eggs,176.3,0.030994152046783796
+2025-05-01,Canada,Bakery and cereal products (excluding baby food),199.0,0.001006036217303663
+2025-05-01,Canada,Fresh fruit and vegetables,181.3,0.023137697516930178
+2025-05-01,Ontario,Food purchased from stores,195.3,0.032786885245901676
+2025-05-01,Ontario,Meat,218.8,0.05445783132530124
+2025-05-01,Ontario,Dairy products and eggs,181.1,0.020856820744081128
+2025-05-01,Ontario,Bakery and cereal products (excluding baby food),205.6,-0.012487992315081575
+2025-05-01,Ontario,Fresh fruit and vegetables,181.1,0.03663423010875788
+2025-05-01,"Toronto, Ontario",All-items,168.1,0.01693889897156664
+2025-05-01,Canada,All-items,164.3,0.017337461300309664
+2025-05-01,Ontario,All-items,165.9,0.016544117647058876
+2025-06-01,Ontario,Meat,219.9,0.05114722753346079
+2025-06-01,Canada,Food purchased from stores,192.8,0.028266666666666662
+2025-06-01,Canada,Meat,221.5,0.04827259820160901
+2025-06-01,Canada,Dairy products and eggs,177.0,0.01899827288428324
+2025-06-01,Canada,All-items,164.4,0.018587360594795488
+2025-06-01,Ontario,Food purchased from stores,195.7,0.023535564853556457
+2025-06-01,Canada,Fresh fruit and vegetables,177.1,-0.0050561797752809445
+2025-06-01,Ontario,All-items,166.0,0.017780502759043637
+2025-06-01,Ontario,Dairy products and eggs,181.5,0.0060975609756097615
+2025-06-01,Ontario,Bakery and cereal products (excluding baby food),206.1,-0.01434720229555242
+2025-06-01,Ontario,Fresh fruit and vegetables,177.9,0.007361268403170973
+2025-06-01,"Toronto, Ontario",All-items,168.1,0.018170805572380377
+2025-06-01,Canada,Bakery and cereal products (excluding baby food),198.0,-0.0010090817356205317
+2025-07-01,Ontario,Food purchased from stores,197.3,0.030287206266318645
+2025-07-01,"Toronto, Ontario",All-items,168.6,0.015051173991571298
+2025-07-01,Ontario,Meat,219.7,0.041725936462778446
+2025-07-01,Canada,Fresh fruit and vegetables,179.3,-0.0005574136008917874
+2025-07-01,Ontario,Fresh fruit and vegetables,181.9,0.02191011235955065
+2025-07-01,Ontario,Bakery and cereal products (excluding baby food),209.3,-0.0014312977099235624
+2025-07-01,Canada,Bakery and cereal products (excluding baby food),200.5,0.007031642390758375
+2025-07-01,Canada,Dairy products and eggs,176.2,0.010321100917431103
+2025-07-01,Canada,Meat,222.8,0.046992481203007586
+2025-07-01,Canada,Food purchased from stores,194.4,0.03404255319148941
+2025-07-01,Canada,All-items,164.9,0.01727328809376938
+2025-07-01,Ontario,Dairy products and eggs,181.2,0.0027670171555063128
+2025-07-01,Ontario,All-items,166.5,0.015863331299572847
+2025-08-01,Canada,Food purchased from stores,194.2,0.034629728289824246
+2025-08-01,Canada,All-items,164.8,0.018541409147095234
+2025-08-01,Canada,Meat,227.8,0.07200000000000006
+2025-08-01,Canada,Bakery and cereal products (excluding baby food),199.5,0.005544354838709742
+2025-08-01,Canada,Fresh fruit and vegetables,173.4,-0.016449234259784506
+2025-08-01,Ontario,All-items,166.0,0.016533986527862865
+2025-08-01,Ontario,Food purchased from stores,196.9,0.03197064989517817
+2025-08-01,Ontario,Meat,224.3,0.05901794145420203
+2025-08-01,Ontario,Bakery and cereal products (excluding baby food),206.9,-0.008149568552253017
+2025-08-01,Ontario,Fresh fruit and vegetables,176.9,0.009703196347031984
+2025-08-01,"Toronto, Ontario",All-items,168.1,0.014484007242003605
+2025-08-01,Canada,Dairy products and eggs,177.7,0.018922018348623837
+2025-08-01,Ontario,Dairy products and eggs,182.6,0.017837235228539416
+2025-09-01,Ontario,Dairy products and eggs,181.1,0.0005524861878452025
+2025-09-01,"Toronto, Ontario",All-items,168.1,0.017554479418886215
+2025-09-01,Canada,All-items,164.9,0.02358783364369965
+2025-09-01,Canada,Food purchased from stores,195.0,0.040000000000000036
+2025-09-01,Canada,Meat,228.2,0.0663551401869158
+2025-09-01,Canada,Dairy products and eggs,176.7,0.014351320321469574
+2025-09-01,Canada,Bakery and cereal products (excluding baby food),198.5,0.010692464358452058
+2025-09-01,Canada,Fresh fruit and vegetables,176.6,0.001701644923425949
+2025-09-01,Ontario,All-items,166.1,0.020270270270270174
+2025-09-01,Ontario,Food purchased from stores,197.3,0.035152151101783824
+2025-09-01,Ontario,Meat,223.9,0.059129612109744656
+2025-09-01,Ontario,Bakery and cereal products (excluding baby food),206.3,0.011274509803921529
+2025-09-01,Ontario,Fresh fruit and vegetables,178.5,0.009044657998869443
+2025-10-01,Canada,Dairy products and eggs,176.8,0.015508328546812278
+2025-10-01,Canada,All-items,165.3,0.02163164400494444
+2025-10-01,"Toronto, Ontario",All-items,168.4,0.015069318866787196
+2025-10-01,Ontario,Fresh fruit and vegetables,169.7,-0.016231884057971047
+2025-10-01,Ontario,Bakery and cereal products (excluding baby food),207.9,-0.001920307249159925
+2025-10-01,Ontario,Dairy products and eggs,181.3,0.010590858416945403
+2025-10-01,Ontario,Meat,230.1,0.08333333333333326
+2025-10-01,Canada,Meat,231.2,0.08442776735459656
+2025-10-01,Ontario,Food purchased from stores,196.4,0.028810895756940846
+2025-10-01,Ontario,All-items,166.4,0.017737003058104106
+2025-10-01,Canada,Fresh fruit and vegetables,169.6,-0.011078717201166266
+2025-10-01,Canada,Bakery and cereal products (excluding baby food),199.6,0.0025113008538422132
+2025-10-01,Canada,Food purchased from stores,193.8,0.03415154749199578
+2025-11-01,Ontario,Bakery and cereal products (excluding baby food),212.4,0.0182166826462129
+2025-11-01,Canada,Food purchased from stores,197.4,0.046659597030753064
+2025-11-01,Canada,Meat,232.4,0.08294501397949672
+2025-11-01,Canada,Dairy products and eggs,176.3,0.0034149117814457064
+2025-11-01,Canada,Bakery and cereal products (excluding baby food),203.2,0.014985014985015033
+2025-11-01,Canada,Fresh fruit and vegetables,179.1,0.01358234295415972
+2025-11-01,Ontario,All-items,166.6,0.018960244648317914
+2025-11-01,Ontario,Food purchased from stores,199.9,0.04114583333333344
+2025-11-01,Ontario,Meat,231.9,0.08822149225715625
+2025-11-01,Ontario,Dairy products and eggs,181.3,-0.005485463521667566
+2025-11-01,Canada,All-items,165.4,0.02224969097651419
+2025-11-01,"Toronto, Ontario",All-items,168.6,0.015662650602409567
+2025-11-01,Ontario,Fresh fruit and vegetables,177.1,0.003968253968253954
+2025-12-01,Canada,All-items,165.0,0.023573200992555998
+2025-12-01,"Toronto, Ontario",All-items,168.4,0.018137847642079707
+2025-12-01,Ontario,Fresh fruit and vegetables,184.6,0.011506849315068512
+2025-12-01,Ontario,Dairy products and eggs,180.7,0.0050055617352613435
+2025-12-01,Ontario,Meat,230.1,0.08588957055214719
+2025-12-01,Ontario,Food purchased from stores,200.2,0.04816753926701556
+2025-12-01,Ontario,Bakery and cereal products (excluding baby food),212.4,0.02164502164502169
+2025-12-01,Canada,Fresh fruit and vegetables,183.6,0.01157024793388417
+2025-12-01,Canada,Bakery and cereal products (excluding baby food),202.8,0.0242424242424244
+2025-12-01,Canada,Dairy products and eggs,176.7,0.013769363166953319
+2025-12-01,Canada,Meat,232.0,0.08461898083216446
+2025-12-01,Canada,Food purchased from stores,197.4,0.050000000000000044
+2025-12-01,Ontario,All-items,166.1,0.020897357098955238
+2026-01-01,Canada,All-items,165.0,0.02293862368257904
+2026-01-01,Canada,Food purchased from stores,198.6,0.048021108179419514
+2026-01-01,Canada,Meat,234.1,0.09392523364485972
+2026-01-01,Canada,Dairy products and eggs,178.2,0.020618556701030855
+2026-01-01,Canada,Bakery and cereal products (excluding baby food),201.7,0.01612090680100753
+2026-01-01,Canada,Fresh fruit and vegetables,183.6,-0.026511134676564185
+2026-01-01,Ontario,All-items,165.9,0.02029520295202958
+2026-01-01,Ontario,Food purchased from stores,201.7,0.04888195527821093
+2026-01-01,"Toronto, Ontario",All-items,167.7,0.016363636363636358
+2026-01-01,Ontario,Bakery and cereal products (excluding baby food),209.9,0.016464891041162222
+2026-01-01,Ontario,Meat,233.1,0.10526315789473673
+2026-01-01,Ontario,Fresh fruit and vegetables,184.7,-0.030954879328436546
+2026-01-01,Ontario,Dairy products and eggs,183.4,0.018888888888888955
+2026-02-01,Ontario,Meat,228.8,0.08590412909349787
+2026-02-01,Canada,All-items,165.9,0.017791411042944905
+2026-02-01,Canada,Food purchased from stores,198.6,0.04088050314465397
+2026-02-01,Canada,Meat,230.7,0.08157524613220812
+2026-02-01,Canada,Dairy products and eggs,178.7,0.015918135304149983
+2026-02-01,Canada,Bakery and cereal products (excluding baby food),204.1,0.0108964834076275
+2026-02-01,Canada,Fresh fruit and vegetables,184.7,-0.01755319148936174
+2026-02-01,Ontario,All-items,166.7,0.01275820170109343
+2026-02-01,Ontario,Food purchased from stores,201.2,0.040869115364718045
+2026-02-01,Ontario,Dairy products and eggs,183.4,0.015503875968992276
+2026-02-01,Ontario,Bakery and cereal products (excluding baby food),210.9,0.00524308865586276
+2026-02-01,Ontario,Fresh fruit and vegetables,184.9,-0.01648936170212767
+2026-02-01,"Toronto, Ontario",All-items,168.4,0.00959232613908867
+2026-03-01,Canada,Dairy products and eggs,181.0,0.019144144144144226
+2026-03-01,Canada,Meat,232.7,0.07582061950993979
+2026-03-01,Ontario,All-items,168.2,0.01877649909145962
+2026-03-01,Canada,All-items,167.4,0.023853211009174258
+2026-03-01,Canada,Bakery and cereal products (excluding baby food),202.4,0.023255813953488413
+2026-03-01,Canada,Food purchased from stores,199.4,0.043979057591623016
+2026-03-01,Canada,Fresh fruit and vegetables,185.7,0.027670171555063572
+2026-03-01,Ontario,Food purchased from stores,202.6,0.04974093264248691
+2026-03-01,Ontario,Meat,231.8,0.08520599250936334
+2026-03-01,Ontario,Dairy products and eggs,184.9,0.01148796498905913
+2026-03-01,Ontario,Bakery and cereal products (excluding baby food),210.1,0.024378352023403327
+2026-03-01,Ontario,Fresh fruit and vegetables,187.7,0.05095184770436734
+2026-03-01,"Toronto, Ontario",All-items,169.7,0.016167664670658555
+2026-04-01,Canada,Dairy products and eggs,178.3,0.013644115974985827
+2026-04-01,Ontario,Meat,233.1,0.07123161764705888
+2026-04-01,Ontario,Food purchased from stores,201.5,0.038659793814433074
+2026-04-01,Ontario,All-items,168.8,0.024271844660194164
+2026-04-01,Canada,Fresh fruit and vegetables,183.0,0.018363939899833204
+2026-04-01,Canada,Bakery and cereal products (excluding baby food),201.6,0.020242914979757165
+2026-04-01,Canada,Food purchased from stores,198.9,0.03810020876826736
+2026-04-01,Canada,Meat,235.4,0.07390510948905127
+2026-04-01,Ontario,Dairy products and eggs,182.6,0.008282716731087714
+2026-04-01,Canada,All-items,168.0,0.028151774785801775
+2026-04-01,"Toronto, Ontario",All-items,170.0,0.01918465227817734
+2026-04-01,Ontario,Fresh fruit and vegetables,184.1,0.0331088664421999
+2026-04-01,Ontario,Bakery and cereal products (excluding baby food),209.3,0.018987341772152
+2026-05-01,Canada,Food purchased from stores,200.9,0.042553191489361764
+2026-05-01,Canada,Meat,234.4,0.05967450271247743
+2026-05-01,Canada,Dairy products and eggs,179.9,0.02041973908111161
+2026-05-01,Canada,All-items,169.6,0.032258064516129004
+2026-05-01,Canada,Fresh fruit and vegetables,194.3,0.07170435741864312
+2026-05-01,Ontario,All-items,170.2,0.02591922845087402
+2026-05-01,Ontario,Food purchased from stores,204.7,0.04813108038914482
+2026-05-01,Ontario,Meat,233.5,0.06718464351005471
+2026-05-01,Ontario,Dairy products and eggs,184.4,0.018221976808393325
+2026-05-01,Ontario,Bakery and cereal products (excluding baby food),211.1,0.02675097276264582
+2026-05-01,Ontario,Fresh fruit and vegetables,197.7,0.09166206515737163
+2026-05-01,"Toronto, Ontario",All-items,171.7,0.021415823914336718
+2026-05-01,Canada,Bakery and cereal products (excluding baby food),202.3,0.016582914572864427
+2026-06-01,"Toronto, Ontario",All-items,170.9,0.016656751933373126
+2026-06-01,Ontario,Fresh fruit and vegetables,186.8,0.050028105677346835
+2026-06-01,Ontario,Bakery and cereal products (excluding baby food),211.8,0.02765647743813693
+2026-06-01,Ontario,Dairy products and eggs,185.9,0.024242424242424176
+2026-06-01,Ontario,Meat,235.8,0.07230559345156884
+2026-06-01,Ontario,Food purchased from stores,203.5,0.03985692386305573
+2026-06-01,Canada,Fresh fruit and vegetables,186.5,0.05307735742518349
+2026-06-01,Canada,Bakery and cereal products (excluding baby food),203.3,0.026767676767676774
+2026-06-01,Canada,Dairy products and eggs,181.4,0.02485875706214702
+2026-06-01,Canada,Meat,236.0,0.06546275395033851
+2026-06-01,Canada,Food purchased from stores,200.3,0.03890041493775942
+2026-06-01,Canada,All-items,169.0,0.027980535279805263
+2026-06-01,Ontario,All-items,169.3,0.01987951807228927
+2026-07-01,Ontario,Meat,228.7,0.040964952207555694
+2026-07-01,"Toronto, Ontario",All-items,171.4,0.01660735468564667
+2026-07-01,Ontario,Fresh fruit and vegetables,189.5,0.041781198460692615
+2026-07-01,Ontario,Bakery and cereal products (excluding baby food),210.7,0.006688963210702337
+2026-07-01,Ontario,Dairy products and eggs,184.7,0.019315673289183266
+2026-07-01,Ontario,Food purchased from stores,203.0,0.028890015205271125
+2026-07-01,Canada,Meat,233.8,0.04937163375224407
+2026-07-01,Canada,Fresh fruit and vegetables,188.3,0.05019520356943663
+2026-07-01,Canada,Bakery and cereal products (excluding baby food),202.7,0.010972568578553554
+2026-07-01,Canada,Dairy products and eggs,180.7,0.02553916004540291
+2026-07-01,Canada,Food purchased from stores,200.5,0.03137860082304522
+2026-07-01,Canada,All-items,169.9,0.03032140691328067
+2026-07-01,Ontario,All-items,169.9,0.02042042042042036
+2026-08-01,Ontario,Bakery and cereal products (excluding baby food),210.1,0.015466408893185069
+2026-08-01,Ontario,Dairy products and eggs,182.4,-0.0010952902519166807
+2026-08-01,Ontario,Meat,234.5,0.04547481052162272
+2026-08-01,Ontario,Food purchased from stores,202.3,0.027425088877602866
+2026-08-01,Ontario,All-items,170.0,0.024096385542168752
+2026-08-01,Canada,Dairy products and eggs,178.4,0.003939223410241999
+2026-08-01,Canada,Bakery and cereal products (excluding baby food),201.9,0.012030075187970057
+2026-08-01,Canada,Meat,236.8,0.039508340649692775
+2026-08-01,Canada,Food purchased from stores,199.6,0.02780638516992795
+2026-08-01,Canada,All-items,169.8,0.03033980582524265
+2026-08-01,"Toronto, Ontario",All-items,171.7,0.021415823914336718
+2026-08-01,Canada,Fresh fruit and vegetables,180.3,0.03979238754325265
+2026-08-01,Ontario,Fresh fruit and vegetables,180.8,0.022046353872244184

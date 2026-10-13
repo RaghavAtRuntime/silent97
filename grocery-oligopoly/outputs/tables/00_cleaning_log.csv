@@ -1,0 +1,12 @@
+step,table,rows
+1. raw products loaded,raw_product,192646
+1. raw price observations loaded,raw_price,76798210
+2. product dimension (excl. Sobeys),product_dim,188245
+3. observations joined to products,obs,76548620
+3a. drop unparseable date/price,obs,75943353
+"3b. drop prices outside $0.10-$1,000",obs,75911849
+3c. cents-scaled prices repaired,obs,123329
+3d. text-only deals converted to effective unit price,obs,2831693
+4. collapsed to product-day panel,daily,64450734
+5. regular-price change events (all),events,594899
+5a. persistent regular-price changes,events,384388

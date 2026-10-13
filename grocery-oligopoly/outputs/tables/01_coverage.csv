@@ -1,0 +1,9 @@
+banner,parent,role,products,product_days,days,first_day,last_day,promo_share,products_with_gtin
+Loblaws,Loblaw,Conventional / premium-leaning,32155,12445186,924,2024-02-28,2026-10-12,0.25654811426683377,12500
+No Frills,Loblaw,Hard discount,24792,9628144,924,2024-02-28,2026-10-12,0.13769164648970766,12721
+T&T,Loblaw,Specialty (Asian),13581,5535988,929,2024-02-28,2026-10-12,0.06923949257115442,302
+Voilà,Empire (Sobeys),Online conventional,26715,11508068,924,2024-02-28,2026-10-12,0.19200260200061384,1288
+Metro,Metro Inc.,Conventional,26380,7065868,933,2024-02-28,2026-10-12,0.3380896727762251,19564
+Walmart,Walmart Canada,Mass discount (EDLP),37217,5459747,865,2024-03-04,2026-10-12,0.19396576434768864,10943
+Galleria,Independent,Specialty (Korean),10705,6211793,930,2024-02-28,2026-10-12,0.008899684841397644,9219
+Save-On-Foods,Pattison Food Group,"Conventional (Western, out-of-market control)",15460,6595940,718,2024-09-28,2026-10-12,0.33363326531169174,15180
