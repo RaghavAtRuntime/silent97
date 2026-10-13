@@ -873,7 +873,7 @@ Unauthenticated downloads still return 404 while the repository is private.
 | Reviews n = 50, MSE gain vs classical | 2.75 / 2.89 / 1.32 | 1.76 / 2.28 / 1.22 | 2.54 / 2.77 / 1.24 |
 | CFPB LLM (λ* ≈ 0.1), MSE gain n = 50 / 1,000 | **0.91 / 0.81** | 0.98 / 1.00 | 0.97 / 1.00 |
 | E1 simulator n = 50, bias / coverage | +0.18 / 0.900 | +0.44 / 0.888 | +0.15 / 0.890 |
-| Cells in A1 band (all three experiments) | 34 / 35 | 34 / 35 | 34 / 35 |
+| Cells in A1 band (all three experiments) | 33 / 35 | 34 / 35 | 34 / 35 |
 
 (The A1 misses: reviews `ppi` and `ppi_pp_cf` at n = 1,000, embedding labeler, 0.937, which
 is the finite-pool over-coverage explained above; CFPB tabular `ppi` at n = 1,000, 0.938,
