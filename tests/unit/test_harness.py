@@ -231,3 +231,87 @@ def test_ppi_pp_cf_runs_with_its_own_random_stream(results: pl.DataFrame) -> Non
     cf = with_cf.filter(pl.col("estimator") == "ppi_pp_cf")
     assert cf.height == 2 * 2 * 4
     assert cf["lambda_hat"].is_finite().all()
+
+
+# --------------------------------------------------------------------------- sampling designs
+
+DESIGNS = {
+    **SMALL,
+    "name": "design_grid",
+    "scenarios": [
+        {"name": "uniform", "mechanism": "mcar", "design": "uniform"},
+        {"name": "strat", "mechanism": "mcar", "design": "stratified_neyman", "n_strata": 4},
+        {"name": "active", "mechanism": "mcar", "design": "active"},
+    ],
+    "estimators": ["classical", "ppi", "ppi_active", "ppi_stratified"],
+    "n_labeled": [60],
+    "replicates": 6,
+}
+
+
+@pytest.fixture(scope="module")
+def design_results() -> pl.DataFrame:
+    return harness.run_grid(harness.GridConfig.from_dict(DESIGNS))
+
+
+def test_design_grid_rows(design_results: pl.DataFrame) -> None:
+    assert design_results.height == 3 * 6 * 4
+    assert (design_results["n_labeled"] == 60).all()  # the target budget
+    active_n = design_results.filter(pl.col("scenario") == "active")["n_realized"]
+    assert active_n.n_unique() > 1  # Poisson sampling: the realized n varies
+    fixed = design_results.filter(pl.col("scenario") != "active")["n_realized"]
+    assert (fixed == 60).all()
+
+
+def test_design_draws_match_estimators(design_results: pl.DataFrame) -> None:
+    """Recompute one active replicate by hand from the prepared scenario."""
+    cfg = harness.GridConfig.from_dict(DESIGNS)
+    prep = harness.prepare_scenario(cfg, 2)
+    rng = np.random.default_rng([cfg.seed, 2, 2, 60, 0])
+    d = harness.draw_design(prep, cfg, 60, rng)
+    assert d.name == "active" and d.pi.shape == prep.pool.shape
+    lab = prep.pool[d.idx]
+    unl = np.setdiff1d(prep.pool, lab)
+    from silent97.estimators.active import ppi_active
+
+    est = ppi_active(
+        prep.scores[lab], prep.p_all[lab], prep.p_all[unl], pi_lab=d.pi[d.idx], alpha=0.1
+    )
+    row = design_results.filter(
+        (pl.col("scenario") == "active")
+        & (pl.col("estimator") == "ppi_active")
+        & (pl.col("replicate") == 0)
+    ).row(0, named=True)
+    assert row["point"] == pytest.approx(est.point, abs=1e-10)
+
+
+def test_strata_are_prediction_quantiles() -> None:
+    cfg = harness.GridConfig.from_dict(DESIGNS)
+    prep = harness.prepare_scenario(cfg, 1)
+    assert prep.strata is not None
+    s = prep.strata[prep.pool]
+    assert set(np.unique(s)) == {0, 1, 2, 3}
+    h = prep.p_all[prep.pool] @ np.array([1.0, -1.0])
+    means = [h[s == k].mean() for k in range(4)]
+    assert means == sorted(means)
+
+
+@pytest.mark.parametrize(
+    "scenario, match",
+    [
+        ({"name": "x", "mechanism": "mar", "design": "active"}, "mcar"),
+        ({"name": "x", "mechanism": "mcar", "design": "lottery"}, "design"),
+        (
+            {"name": "x", "mechanism": "mcar", "design": "stratified_neyman", "n_strata": 1},
+            "n_strata",
+        ),
+    ],
+)
+def test_design_scenario_validation(scenario: dict[str, object], match: str) -> None:
+    with pytest.raises(ValueError, match=match):
+        harness.Scenario(**scenario)  # type: ignore[arg-type]
+
+
+def test_ppi_active_needs_a_design() -> None:
+    with pytest.raises(ValueError, match="ppi_active"):
+        harness.GridConfig.from_dict({**SMALL, "estimators": ["ppi_active"]})

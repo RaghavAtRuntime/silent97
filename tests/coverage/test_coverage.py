@@ -94,3 +94,47 @@ def test_classical_fails_under_self_selection(
         (pl.col("scenario") == scenario) & (pl.col("estimator") == "classical")
     ).row(0, named=True)
     assert row["coverage_hi"] < 0.88, row
+
+
+@pytest.fixture(scope="module")
+def design_summary() -> pl.DataFrame:
+    """Design-based estimators under their own sampling designs (full response)."""
+    cfg = harness.GridConfig.from_dict(
+        {
+            **BASE,
+            "seed": 20261016,
+            "name": "coverage_designs",
+            "scenarios": [
+                {"name": "active", "mechanism": "mcar", "signal_strength": 0.6, "design": "active"},
+                {
+                    "name": "neyman",
+                    "mechanism": "mcar",
+                    "signal_strength": 0.6,
+                    "design": "stratified_neyman",
+                },
+            ],
+            "estimators": ["ppi_active", "ppi_stratified"],
+            "n_labeled": [100, 500],
+            "replicates": 1000,
+        }
+    )
+    return metrics.summarize(harness.run_grid(cfg))
+
+
+@pytest.mark.parametrize(
+    "scenario, estimator", [("active", "ppi_active"), ("neyman", "ppi_stratified")]
+)
+@pytest.mark.parametrize("n", [100, 500])
+def test_design_based_estimators_cover(
+    design_summary: pl.DataFrame, scenario: str, estimator: str, n: int
+) -> None:
+    row = design_summary.filter(
+        (pl.col("scenario") == scenario)
+        & (pl.col("estimator") == estimator)
+        & (pl.col("n_labeled") == n)
+    ).row(0, named=True)
+    assert row["replicates"] == 1000
+    assert row["coverage_ok"], (
+        f"{estimator} under {scenario} at n={n}: coverage {row['coverage']:.3f} "
+        f"[{row['coverage_lo']:.3f}, {row['coverage_hi']:.3f}] misses [0.88, 0.92]"
+    )

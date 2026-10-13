@@ -35,7 +35,7 @@ import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 import numpy as np
 import polars as pl
@@ -43,20 +43,25 @@ import yaml
 from joblib import Parallel, delayed
 from numpy.typing import ArrayLike, NDArray
 
-from silent97 import estimators
+from silent97 import estimators, sampling
 from silent97.data import schema
 from silent97.data.simulate import SimConfig, simulate_population
+from silent97.estimators.active import ppi_active
 from silent97.estimators.ppi import cross_fit, ppi_crossfit, ppi_pp_cf
+from silent97.estimators.stratified import ppi_stratified
 from silent97.labelers.logistic import design_matrix, fit_logistic, predict_folds
 from silent97.labelers.tabular import TabularLabeler
+from silent97.types import Design
 
 __all__ = [
+    "DESIGNS",
     "RESULT_COLUMNS",
     "GridConfig",
     "LabelerConfig",
     "PreparedScenario",
     "Scenario",
     "check_disjoint",
+    "draw_design",
     "draw_respondents",
     "load_grid_config",
     "model_correlation",
@@ -73,6 +78,7 @@ RESULT_COLUMNS = (
     "signal_strength",
     "estimator",
     "n_labeled",
+    "n_realized",
     "n_unlabeled",
     "replicate",
     "alpha",
@@ -152,6 +158,9 @@ def _reject_unknown(values: Mapping[str, Any], known: set[str], where: str) -> N
         raise ValueError(f"unknown key(s) in {where}: {unknown}; expected {sorted(known)}")
 
 
+DESIGNS: Final = ("response", "uniform", "stratified_proportional", "stratified_neyman", "active")
+
+
 @dataclass(frozen=True)
 class Scenario:
     """A response mechanism plus an optional labeler signal strength override."""
@@ -161,8 +170,28 @@ class Scenario:
     signal_strength: float | None = None
     labeler_features: str = "all"
     """``"all"`` labeler features, or ``"signal_only"`` (no covariates; lets E2 reach rho = 0)."""
+    design: str = "response"
+    """Who is surveyed. ``"response"``: the scenario's self-selected respondents (the
+    default, as in E1/E2/E4). Otherwise a sampling design on the pool with full
+    response (MCAR): ``"uniform"``, ``"stratified_proportional"``,
+    ``"stratified_neyman"`` or ``"active"`` (:mod:`silent97.sampling.designs`)."""
+    n_strata: int = 5
+    """Strata for stratified designs and ``ppi_stratified``: quantiles of the predicted NPS."""
+    active_floor: float = 0.1
+    """Uniform-floor mixing weight of the active design."""
 
     def __post_init__(self) -> None:
+        if self.design not in DESIGNS:
+            raise ValueError(
+                f"scenario {self.name!r}: design must be one of {DESIGNS}, got {self.design!r}"
+            )
+        if self.design != "response" and self.mechanism != "mcar":
+            raise ValueError(
+                f"scenario {self.name!r}: sampling designs assume full response; "
+                f"use mechanism 'mcar' (got {self.mechanism!r})"
+            )
+        if self.n_strata < 2:
+            raise ValueError(f"scenario {self.name!r}: n_strata must be >= 2, got {self.n_strata}")
         if self.labeler_features not in ("all", "signal_only"):
             raise ValueError(
                 f"scenario {self.name!r}: labeler_features must be 'all' or 'signal_only', "
@@ -236,6 +265,11 @@ class GridConfig:
             raise ValueError(f"alpha must lie in (0, 1), got {self.alpha}")
         if self.crossfit_folds < 2:
             raise ValueError(f"crossfit_folds must be >= 2, got {self.crossfit_folds}")
+        if "ppi_active" in self.estimators and any(s.design == "response" for s in self.scenarios):
+            raise ValueError(
+                "ppi_active needs known inclusion probabilities: every scenario must use a "
+                "sampling design (not 'response')"
+            )
         SimConfig.from_dict(dict(self.population))  # validate overrides early
 
     @classmethod
@@ -284,6 +318,8 @@ class PreparedScenario:
     truth: float
     model_corr: float = float("nan")
     """Correlation over the pool between predicted and true per-customer NPS values."""
+    strata: NDArray[np.int64] | None = None
+    """Stratum label for every customer (quantiles of the predicted NPS over the pool)."""
 
 
 def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
@@ -327,7 +363,40 @@ def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
         pool=pool,
         truth=float(value[pool].mean()),
         model_corr=model_correlation(p_all[pool], scores[pool]),
+        strata=prediction_strata(p_all, pool, scenario.n_strata),
     )
+
+
+def prediction_strata(
+    p_all: NDArray[np.float64], pool: NDArray[np.int64], k: int
+) -> NDArray[np.int64]:
+    """Label everyone by the pool quantile bin (0..k-1) of the predicted NPS value.
+
+    Uses predictions only (no survey data), so strata are fixed before any survey.
+    """
+    h = p_all @ np.array([1.0, -1.0])
+    edges = np.quantile(h[pool], np.linspace(0, 1, k + 1)[1:-1])
+    labels: NDArray[np.int64] = np.searchsorted(edges, h, side="right").astype(np.int64)
+    return labels
+
+
+def draw_design(
+    prep: PreparedScenario, cfg: GridConfig, n: int, rng: np.random.Generator
+) -> Design:
+    """Draw the scenario's sampling design over the pool (indices are pool positions)."""
+    design = prep.scenario.design
+    if design == "uniform":
+        return sampling.uniform(n, prep.pool.size, rng)
+    p_pool = prep.p_all[prep.pool]
+    if design == "active":
+        u = sampling.nps_uncertainty(p_pool)
+        return sampling.active(n, u, rng, floor=prep.scenario.active_floor)
+    assert prep.strata is not None
+    strata = prep.strata[prep.pool]
+    if design == "stratified_proportional":
+        return sampling.stratified(n, strata, rng, allocation="proportional")
+    sigma = sampling.neyman_sigma(strata, p_pool)
+    return sampling.stratified(n, strata, rng, allocation="neyman", sigma=sigma)
 
 
 def model_correlation(p: NDArray[np.float64], scores: NDArray[np.int64]) -> float:
@@ -344,7 +413,14 @@ def run_replicate(
 ) -> list[dict[str, Any]]:
     """Run every configured estimator on one survey draw; one result row each."""
     rng = np.random.default_rng([cfg.seed, 2, scenario_index, n, replicate])
-    lab = draw_respondents(prep.pool, prep.propensity[prep.pool], n, rng)
+    pi_lab: NDArray[np.float64] | None = None
+    if prep.scenario.design == "response":
+        lab = draw_respondents(prep.pool, prep.propensity[prep.pool], n, rng)
+    else:
+        d = draw_design(prep, cfg, n, rng)
+        lab, pi_lab = prep.pool[d.idx], d.pi[d.idx]
+        if lab.size < 2:
+            raise ValueError(f"design {d.name!r} drew {lab.size} customers; need at least 2")
     check_disjoint(prep.train_idx, lab)
     unlab_mask = np.zeros(prep.scores.size, dtype=bool)  # unlabeled = pool minus this draw
     unlab_mask[prep.pool] = True
@@ -365,6 +441,15 @@ def run_replicate(
             )
             folds_unlab = predict_folds(cf.predictors, prep.x[unlab_mask])
             est = ppi_crossfit(y_lab, cf.p_lab, folds_unlab, alpha=cfg.alpha)
+        elif name == "ppi_active":
+            assert pi_lab is not None
+            est = ppi_active(y_lab, p_lab, p_unlab, pi_lab=pi_lab, alpha=cfg.alpha)
+        elif name == "ppi_stratified":
+            assert prep.strata is not None
+            est = ppi_stratified(
+                y_lab, p_lab, p_unlab, strata_lab=prep.strata[lab],
+                strata_unlab=prep.strata[unlab_mask], alpha=cfg.alpha,
+            )  # fmt: skip
         elif name == "ppi_pp_cf":
             # Its own stream, so adding it never changes the other estimators' draws.
             fold_rng = np.random.default_rng([cfg.seed, 3, scenario_index, n, replicate])
@@ -381,7 +466,8 @@ def run_replicate(
                 "mechanism": prep.scenario.mechanism,
                 "signal_strength": prep.signal_strength,
                 "estimator": name,
-                "n_labeled": est.n_labeled,
+                "n_labeled": n,
+                "n_realized": est.n_labeled,
                 "n_unlabeled": est.n_unlabeled,
                 "replicate": replicate,
                 "alpha": est.alpha,
