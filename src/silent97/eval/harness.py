@@ -351,7 +351,8 @@ class PreparedScenario:
     cells: mrp_mod.CellFrame | None = None
     """MRP cells with the pool's population counts."""
     x_cell: NDArray[np.float64] | None = None
-    """Per cell, the pool mean of the predicted promoter and detractor logits (mrp_ppi)."""
+    """Per cell, the pool mean of the predicted promoter logit and of the predicted
+    conditional detractor logit, logit(p_D / (1 - p_P)) (mrp_ppi)."""
 
 
 def prepare_scenario(cfg: GridConfig, scenario_index: int) -> PreparedScenario:
@@ -408,7 +409,9 @@ def mrp_cells(table: Any, p_all: NDArray[np.float64], pool: NDArray[np.int64]) -
     """MRP cells (province x age band x tenure band) with the pool's counts.
 
     Cells without pool customers are dropped. The segment is province x age band (the
-    simulator's 60 segments). ``x_cell`` holds the pool mean of the predicted logits.
+    simulator's 60 segments). ``x_cell`` holds the pool mean of the predicted promoter
+    logit and of the predicted conditional detractor logit, logit(p_D / (1 - p_P)),
+    matching the two MRP models (:mod:`silent97.estimators.mrp`).
     """
     n_age, n_ten = len(AGE_BANDS), len(TENURE_BANDS)
     prov, age, ten = (_codes(table, c) for c in ("province", "age_band", "tenure_band"))
@@ -426,7 +429,9 @@ def mrp_cells(table: Any, p_all: NDArray[np.float64], pool: NDArray[np.int64]) -
         segment=segment,
     )
     cell = remap[key]
-    logit = np.log(np.clip(p_all, 1e-6, 1 - 1e-6)) - np.log1p(-np.clip(p_all, 1e-6, 1 - 1e-6))
+    q_det = p_all[:, 1] / np.clip(1.0 - p_all[:, 0], 1e-6, None)
+    probs = np.clip(np.column_stack([p_all[:, 0], q_det]), 1e-6, 1 - 1e-6)
+    logit = np.log(probs) - np.log1p(-probs)
     pool_cell = cell[pool]
     x_cell = (
         np.column_stack(

@@ -113,6 +113,25 @@ def test_mrp_interval_coverage_small_monte_carlo() -> None:
     assert 0.8 <= hits / 120 <= 0.98
 
 
+def test_nps_se_includes_promoter_detractor_covariance() -> None:
+    """Probing test (CLAUDE.md rule 1): with no cell effects MRP is close to the pooled
+    multinomial estimate, so its se must match the delta-method se that uses the joint
+    2x2 covariance. Combining independent promoter and detractor fits would ignore the
+    negative covariance -p_P p_D and give an se about 20% too small here."""
+    from silent97.estimators import classical
+
+    rng = np.random.default_rng(11)
+    cells = _cells(rng)
+    p_prom = np.full(cells.n_cells, 0.45)
+    p_det = np.full(cells.n_cells, 0.25)
+    ratios = []
+    for r in range(3):
+        y, cell = _survey(cells, p_prom, p_det, 3000, rng)
+        est = mrp.mrp(y, cell, cells, rng=np.random.default_rng(r))
+        ratios.append(est.se / classical.classical(y).se)
+    assert 0.9 < float(np.mean(ratios)) < 1.15, ratios
+
+
 def test_segment_estimates_shrink_thin_segments() -> None:
     rng = np.random.default_rng(4)
     cells = _cells(rng)

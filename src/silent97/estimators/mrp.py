@@ -6,14 +6,24 @@ The population is cross-classified into C cells (here province x age band x tenu
 band, reviewer decision Q2 in ``docs/progress/phase-4.md``). Each cell c has a known
 population count :math:`N_c`, the levels of F grouping factors (province, age band,
 tenure band and the province x age segment), and, from the survey, :math:`n_c`
-respondents, of whom :math:`k_c` are promoters (or detractors).
+respondents, of whom :math:`k^P_c` are promoters and :math:`k^D_c` detractors.
 
-Model (fit separately for promoters and for detractors; CLAUDE.md rule 7)
---------------------------------------------------------------------------
+Model (two hierarchical logistic models; CLAUDE.md rule 7)
+-----------------------------------------------------------
+The three-way (promoter, passive, detractor) multinomial in each cell factorizes
+exactly into two binomials (a continuation-ratio split):
 
 .. math::
 
-    k_c \sim \mathrm{Binomial}(n_c, p_c), \qquad
+    k^P_c \sim \mathrm{Binomial}(n_c, p_c), \qquad
+    k^D_c \mid k^P_c \sim \mathrm{Binomial}(n_c - k^P_c, q_c), \qquad
+    p^D_c = (1 - p_c)\, q_c,
+
+where :math:`q_c` is the detractor share among non-promoters. Each of the two
+probabilities gets its own hierarchical logistic model
+
+.. math::
+
     \operatorname{logit} p_c = \beta_0 + \beta_1 x_c + \sum_{f=1}^{F} u_{f, \ell_f(c)},
     \qquad u_{f, \ell} \sim N(0, \sigma_f^2),
 
@@ -21,17 +31,24 @@ with priors :math:`\beta_j \sim N(0, 2.5^2)` and :math:`\sigma_f \sim
 \mathrm{HalfNormal}(1)`. The random intercepts pool information across cells that
 share a province, age band, tenure band or segment (partial pooling), so thin cells
 borrow strength. ``mrp`` has no :math:`x_c`. ``mrp_ppi`` adds a cell-level covariate
-from the model's predictions: the cell mean of the predicted promoter (detractor)
-logit over the population, standardized.
+from the model's predictions: the cell mean over the population of the predicted
+promoter logit (for :math:`p`) and of the predicted conditional detractor logit,
+:math:`\operatorname{logit}(\hat p^D / (1 - \hat p^P))` (for :math:`q`), standardized.
+
+Because the likelihood factorizes and the priors are independent, the two fits are
+exactly the joint posterior of :math:`(p, q)`. The promoter and detractor shares
+:math:`(p_c, (1 - p_c) q_c)` computed from the same draw then carry their negative
+covariance, as rule 1 requires. (Fitting "detractor vs rest" separately and combining
+the draws as independent ignores the covariance :math:`-p^P p^D`; with
+:math:`p^P \approx 0.45`, :math:`p^D \approx 0.25` that understates the NPS se by about
+20%. This is tested.)
 
 Poststratification
 ------------------
-For each posterior draw, :math:`\mathrm{NPS} = 100 \sum_c W_c (p^{P}_c - p^{D}_c)` with
+For each posterior draw, :math:`\mathrm{NPS} = 100 \sum_c W_c (p_c - (1 - p_c) q_c)` with
 :math:`W_c = N_c / \sum N`; a segment's NPS uses the same sum over its own cells. The point
 estimate is the posterior mean, ``se`` the posterior sd, and the interval the equal-tailed
-:math:`(1 - \alpha)` posterior interval. The promoter and detractor models are fit
-independently, so their posterior draws are combined as independent; the small
-negative correlation between the two shares is ignored.
+:math:`(1 - \alpha)` posterior interval.
 
 Fitting
 -------
@@ -399,14 +416,16 @@ def _mrp(
     kw = {"rng": rng, "fit": fit, "n_draws": n_draws, "nuts_draws": nuts_draws,
           "nuts_tune": nuts_tune, "nuts_chains": nuts_chains}  # fmt: skip
     p_prom, info_p = _fit(cells, k_prom, n_c, x=xs[0], **kw)  # type: ignore[arg-type]
-    p_det, info_d = _fit(cells, k_det, n_c, x=xs[1], **kw)  # type: ignore[arg-type]
-    m = min(p_prom.shape[0], p_det.shape[0])
-    nps_cells = 100.0 * (p_prom[:m] - p_det[:m])
+    # Detractors among non-promoters: the multinomial factorizes exactly (module docstring).
+    q_det, info_d = _fit(cells, k_det, n_c - k_prom, x=xs[1], **kw)  # type: ignore[arg-type]
+    m = min(p_prom.shape[0], q_det.shape[0])
+    p_det = (1.0 - p_prom[:m]) * q_det[:m]
+    nps_cells = 100.0 * (p_prom[:m] - p_det)
     point, lower, upper, se = _summarize(nps_cells @ w, alpha)
     diagnostics: dict[str, Any] = {
         "fit": fit,
         "sd_promoter": info_p["sd"],
-        "sd_detractor": info_d["sd"],
+        "sd_detractor": info_d["sd"],  # detractor-among-non-promoters model
         "n_cells": cells.n_cells,
         "n_cells_observed": int((n_c > 0).sum()),
     }
@@ -494,7 +513,8 @@ def mrp_ppi(
     """MRP with the model's predictions as a cell-level covariate (see module docstring).
 
     ``x_cell`` (C, 2): per cell, the population mean of the predicted promoter logit and
-    of the predicted detractor logit. It is standardized internally.
+    of the predicted conditional detractor logit, ``logit(p_D / (1 - p_P))`` (the
+    covariate of the detractor-among-non-promoters model). It is standardized internally.
     """
     return _mrp(
         y_lab, cell_lab, cells, x_cell=x_cell, rng=rng, alpha=alpha, fit=fit,
