@@ -192,6 +192,7 @@ def estimate(y_lab, f_lab, f_unlab, *, alpha=0.1, weights=None, **kw) -> Estimat
 | `naive_model` | Average of predictions on everyone | Never (baseline expected to fail) |
 | `ppi` | PPI with λ = 1 | MCAR labeled set |
 | `ppi_pp` | PPI++ with variance-optimal λ, estimated by plug-in | MCAR labeled set |
+| `ppi_pp_cf` | PPI++ with a cross-fitted λ: each fold's λ is estimated from the other folds only, removing plug-in PPI++'s same-sample O(1/n) bias in small, skewed samples | MCAR labeled set |
 | `ppi_crossfit` | Cross-prediction PPI: model trained on K−1 folds of labeled data, predicts the held-out fold | MCAR; no separate training data needed |
 | `ppi_active` | IPW-corrected PPI with known sampling probabilities π(x) | Any design where π(x) > 0 and is recorded |
 | `ppi_stratified` | PPI within strata, combined with population stratum weights | Random sampling within strata |
@@ -217,6 +218,12 @@ def estimate(y_lab, f_lab, f_unlab, *, alpha=0.1, weights=None, **kw) -> Estimat
 - `TabularLabeler`: LightGBM multiclass (detractor / passive / promoter) with isotonic calibration.
 - `EmbeddingLabeler`: sentence-embedding model plus logistic regression, for text.
 - `LLMLabeler`: a lightweight open-weight instruction model run locally (default `Qwen/Qwen2.5-0.5B-Instruct` on CPU via `transformers`); zero-shot prompt whose next-token probabilities over the three answer options give the class probabilities. All scores are cached to disk keyed by a hash of (model, prompt version, input), so experiments never re-score. Hard cap on items set in config; no external API and no spend.
+
+**Choosing among the PPI estimators (small surveys)**
+
+- Plug-in PPI++ (`ppi_pp`) estimates λ on the same responses it corrects, which adds an O(1/n) bias and an optimistic standard error at small n. On the skewed Amazon reviews (84% promoters) it was +2.2 NPS points with 0.84 coverage at n = 50. It agrees with the others from about n = 500.
+- With a calibrated labeler (λ* ≈ 1), **plain `ppi` (λ = 1) is the recommended choice below about 200 responses**: it is unbiased, its standard error is as honest as the classical one, and it was the most efficient at small n in E6.
+- `ppi_pp_cf` removes the bias at every n. Its standard error ignores the variability of the fold λs, so it is also optimistic at n ≤ 50. Use it from about n = 100 when the labeler may be miscalibrated (λ* far from 1). The evidence is in `docs/progress/phase-3.md`.
 
 **Survey planning** (`eval/planning.py`)
 
