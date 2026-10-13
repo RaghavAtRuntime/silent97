@@ -738,3 +738,89 @@ Reviewer decisions:
 - Status: scoring is in progress; E6 (reviews) runs when it finishes.
 
 `make test`: 1,345+ fast tests pass; `make lint` is clean.
+
+### E6 (reviews) results (`docs/results/e06_amazon_*`, 1,000 replicates, seed 20261015)
+
+**LLM scoring:** 9,489 unique reviews scored by Qwen3.5-4B in about 9.2 h of CPU (five chunks of
+under 2 h). **0 invalid**, $0. The pool's true NPS is **+73.20** (10,000 reviews).
+
+**Labeler quality (ρ on the pool):**
+- embedding (trained on 30,198 labeled reviews): **0.809**
+- LLM (zero-shot, no labels): **0.794**
+- tabular (metadata only): 0.477
+
+**Gains** (PPI++, effective n / n from widths; MSE ratio, the A3 measure, in brackets):
+
+| labeler | n = 50 | n = 200 | n = 1,000 |
+|---|---|---|---|
+| LLM (zero-shot) | 2.52 [MSE 2.28] | 2.57 | 2.30 [MSE 2.85] |
+| embedding | 2.53 [MSE 1.76] | 2.72 | 2.43 [MSE 2.81] |
+| tabular | 1.29 [MSE 1.22] | 1.29 | 1.26 [MSE 1.26] |
+
+This is the headline for real text. A zero-shot local LLM, with no training labels, makes
+each survey response worth **about 2.3–2.6 classical responses** on real customer text with
+real satisfaction ratings. For a ±5-point NPS interval, that means roughly 40% of the
+responses. The width-based gain at n = 1,000 understates the MSE gain because of the
+finite-pool effect (next paragraph).
+
+**Planning check** (`e06_amazon_summary.md`): from n = 200 up, predicted and realized gains
+agree within about 2%:
+- LLM: 2.619 vs 2.565 at n = 200; 2.313 vs 2.303 at n = 1,000.
+- tabular: 1.286 vs 1.290 at n = 200; 1.257 vs 1.258 at n = 1,000.
+
+ρ estimated from 300 "past" responses: LLM 0.803 [0.745, 0.848] and embedding 0.795
+[0.700, 0.873]. Both intervals contain the pool value. At n ≤ 100, PPI++ realizes less than
+predicted (LLM 2.52 vs 2.69 at n = 50); see the next point.
+
+**Coverage:** 57 of 60 valid cells are in the A1 band. All 15 naive-model cells for the LLM and
+tabular labelers cover 0%; the LLM-only NPS is **51.95 against a truth of 73.20** (bias
+−21.25). The embedding labeler's model-only estimate covers 100% (bias −0.22, width 1.8).
+That model was trained on 30,198 labeled reviews from the same population, which is not
+the small-survey setting. The three misses:
+
+1. **PPI++ at n = 50, embedding labeler: 0.843 [0.819, 0.864] (under-coverage).**
+   - *Investigation (one pass):* PPI++ estimates λ from the same n responses it uses for
+     the rectifier, and that creates an O(1/n) bias. The bias roughly halves as n doubles
+     (embedding: +2.23, +1.02, +0.48, +0.14 points at n = 50, 100, 200, 500), and the
+     error is negatively correlated with λ̂ (corr −0.13 to −0.54 across labelers).
+   - At n = 50 the reported SE is also 13% too small (embedding; reported se / empirical
+     sd = 0.867, against 0.95–1.03 for classical and PPI).
+   - The data are very skewed: 84% promoters, so about 5 detractors in a sample of 50. The
+     plug-in λ̂ is noisy (0.95 ± 0.36).
+   - The same pattern, within the band, holds at n = 50 for the LLM (0.869) and tabular
+     (0.860) labelers.
+   - Plain PPI (λ = 1) has no such bias and covers 0.888–0.906 at n = 50. Because the
+     labelers are calibrated (λ* ≈ 1), it is also more efficient there: MSE gain 2.75 vs
+     1.76 (embedding) and 2.89 vs 2.28 (LLM).
+   - From n ≥ 500 the two agree.
+   - Our `ppi_pp` matches `ppi_py` at 1e-6, so this is a property of the published
+     plug-in estimator in small, skewed samples, not an implementation error.
+   - **Open question 3.**
+2. **PPI at n = 1,000, embedding labeler: 0.937 [0.920, 0.950] (over-coverage).** This is
+   the finite-pool effect, and it is stronger for good models. The interval counts the
+   unlabeled mean as noise (S_f²/N), but relative to the pool's own NPS it is not. For
+   ρ ≈ 0.8, n = 1,000 and N = 9,000, the formula overstates the variance by about 30%,
+   which predicts coverage of about 0.939. Observed: 0.935–0.937 for PPI and 0.926–0.936
+   for PPI++.
+3. **Cross-fit PPI at n = 50, tabular labeler: 0.855 [0.832, 0.875].** This is the cross-fit
+   pattern already seen on CFPB. With 10 folds of 5 responses, refitting adds variance
+   that the plug-in leaves out. Cross-fit also gains nothing here (effective n 43 at
+   n = 50), because its own logistic model sees only metadata.
+
+### Release
+
+`make pack-labels` gives an archive of 113,669,500 bytes, SHA-256
+`dba99b274dea495a2083ac1e91deaeacaad203c4b7aaef95a178ed2a3573cc56`. It contains the CFPB
+labels (both LLMs), the review labels and both embedding caches. `configs/labels.yaml` now
+points at release **`labels-v2`**, which needs uploading (labels-v1 is superseded).
+
+### Open questions
+
+3. **PPI++ at small n on skewed data.** Options:
+   - (a) Document that at n < ~200 with a calibrated labeler, plain PPI (λ = 1) is
+     preferred. This needs no code change, and the data support it.
+   - (b) Add a cross-fitted-λ PPI++ variant: estimate λ on the other folds, which removes
+     the same-sample bias. This would be a new, separately tested estimator, and it
+     needs your approval under CLAUDE.md rules 3 and 6.
+   - (c) Both.
+4. Upload `labels-v2` (send-out below).

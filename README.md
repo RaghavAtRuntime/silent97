@@ -23,9 +23,10 @@ The last command writes a synthetic population of 200,000 customers to
 
 ```bash
 make cfpb                  # public CFPB complaints (CC0 mirror, SHA-256 pinned, cross-checked)
+make amazon                # Amazon Reviews 2023, Gift Cards (research use, SHA-256 pinned)
 make fetch-labels          # cached LLM scores and embeddings from the labels-v1 release
-make reproduce             # simulator, E1, E2 and E6 results and figures
+make reproduce             # simulator, E1, E2, both E6 benchmarks and the planning table
 ```
 
-The simulator data is synthetic. The real-text benchmark uses public CFPB complaint
-data only; the LLM labeler runs locally and nothing is sent to an external API.
+The simulator data is synthetic. The real-text benchmarks use public CFPB complaints
+and the research-use Amazon Reviews 2023 dataset; the LLM labeler runs locally and nothing is sent to an external API.
