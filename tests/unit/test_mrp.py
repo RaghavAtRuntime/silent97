@@ -97,6 +97,7 @@ def test_mrp_recovers_population_nps() -> None:
     assert est.diagnostics["fit"] == "laplace"
 
 
+@pytest.mark.slow  # Monte Carlo coverage check: runs with make test-slow
 def test_mrp_interval_coverage_small_monte_carlo() -> None:
     """MRP intervals (Laplace) cover the population NPS about as often as stated."""
     rng = np.random.default_rng(3)
