@@ -46,6 +46,7 @@ ESTIMATOR_STYLE: Final[dict[str, dict[str, Any]]] = {
     "ppi_pp": {"color": "#1baf7a", "marker": "D", "label": "PPI++"},
     "ppi_crossfit": {"color": "#eda100", "marker": "v", "label": "cross-fit PPI"},
     "naive_model": {"color": "#e87ba4", "marker": "X", "label": "naive model"},
+    "ppi_pp_cf": {"color": "#7a5cc9", "marker": "s", "label": "PPI++ (cross-fit λ)"},
 }
 
 

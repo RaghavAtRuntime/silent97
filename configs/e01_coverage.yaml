@@ -14,7 +14,7 @@ scenarios:
   - name: mcar
     mechanism: mcar
     signal_strength: 0.6
-estimators: [classical, naive_model, ppi, ppi_pp, ppi_crossfit]
+estimators: [classical, naive_model, ppi, ppi_pp, ppi_crossfit, ppi_pp_cf]
 n_labeled: [50, 100, 200, 500, 1000]
 replicates: 1000
 alpha: 0.1

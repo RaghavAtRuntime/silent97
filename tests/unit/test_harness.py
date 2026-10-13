@@ -218,3 +218,16 @@ def test_signal_only_labeler_has_no_covariate_signal() -> None:
     prep = harness.prepare_scenario(cfg, 0)
     assert prep.x.shape[1] == 1
     assert abs(prep.model_corr) < 0.06
+
+
+def test_ppi_pp_cf_runs_with_its_own_random_stream(results: pl.DataFrame) -> None:
+    """Adding ppi_pp_cf (which draws a fold split) must not change any other estimator."""
+    with_cf = harness.run_grid(
+        harness.GridConfig.from_dict({**SMALL, "estimators": [*SMALL["estimators"], "ppi_pp_cf"]})
+    )
+    keys = ["scenario", "n_labeled", "replicate", "estimator"]
+    others = with_cf.filter(pl.col("estimator") != "ppi_pp_cf").sort(keys)
+    assert others.select(results.columns).equals(results.sort(keys))
+    cf = with_cf.filter(pl.col("estimator") == "ppi_pp_cf")
+    assert cf.height == 2 * 2 * 4
+    assert cf["lambda_hat"].is_finite().all()

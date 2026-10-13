@@ -1,4 +1,4 @@
-r"""Prediction-powered NPS estimators: ``ppi``, ``ppi_pp`` and ``ppi_crossfit``.
+r"""Prediction-powered NPS estimators: ``ppi``, ``ppi_pp``, ``ppi_pp_cf`` and ``ppi_crossfit``.
 
 Notation
 --------
@@ -65,6 +65,48 @@ clips to [0, 1] for means. ``clip=False`` (the default) follows the paper;
 predictions) every :math:`\lambda` gives the classical estimate, and
 :math:`\hat\lambda = 0` is returned with ``lambda_degenerate=True``.
 
+PPI++ with a cross-fitted :math:`\lambda` (``ppi_pp_cf``)
+---------------------------------------------------------
+Plug-in PPI++ estimates :math:`\lambda` on the same n responses that it then
+rectifies, so :math:`\hat\lambda` is correlated with the rectifier and the estimate
+has an :math:`O(1/n)` bias. It is negligible for large n, but visible for small,
+skewed samples (E6 on Amazon reviews: +2.2 NPS points and 0.84 coverage at n = 50).
+``ppi_pp_cf`` removes that dependence by cross-fitting the tuning parameter, as in
+double/debiased machine learning (Chernozhukov et al. 2018). Split the labeled rows
+into K folds :math:`I_1, \dots, I_K` (sizes :math:`n_k`, weights :math:`w_k = n_k/n`).
+For each fold, :math:`\lambda_k` is the plug-in optimal :math:`\lambda` above,
+computed from the labeled rows *outside* :math:`I_k` only (both :math:`\hat C` and
+:math:`\hat V`; the unlabeled set enters only through N in the factor
+:math:`1 + n/N`). Then
+
+.. math::
+
+    \hat\theta = \frac{1}{n}\sum_{i=1}^n \big(Z_i - \lambda_{k(i)} f_i\big)
+        + \bar\lambda\,\frac{1}{N}\sum_{j=1}^N \tilde f_j,
+    \qquad \bar\lambda = \sum_k w_k \lambda_k .
+
+Unbiasedness (finite sample): :math:`\lambda_k` depends only on rows outside
+:math:`I_k`, which are independent of :math:`I_k` and of the unlabeled set, so
+:math:`E[\lambda_k (\bar{\tilde f} - \bar f_{I_k})] = E[\lambda_k] \cdot 0` and
+:math:`E[\hat\theta] = E[Z]` whenever :math:`E|\lambda_k| < \infty`.
+
+Variance, treating the :math:`\lambda_k` as fixed:
+
+.. math::
+
+    \hat\Sigma = \frac{1}{n^2} \sum_k n_k \big(\hat C_{ZZ}
+        - \lambda_k (\hat C_{Zf} + \hat C_{fZ}) + \lambda_k^2 \hat C_{ff}\big)
+        + \bar\lambda^2 \frac{\mathrm{cov}_0(\tilde f)}{N},
+
+with :math:`\hat C` the ddof-0 covariances over all n labeled rows. The bracket is
+:math:`\mathrm{cov}_0(Z - \lambda_k f)`, so with equal :math:`\lambda_k` this is
+exactly the PPI variance at that :math:`\lambda`. The NPS se is
+:math:`\sqrt{g^\top \hat\Sigma g}`, with a Wald interval as above. The variability
+of the :math:`\lambda_k` themselves is ignored; it vanishes asymptotically
+(:math:`\lambda_k \to \lambda^\star`), and small-n coverage is checked by simulation
+(tests/coverage, E1, E6). Validity: the same assumptions as PPI, plus a random
+fold split independent of the data. Folds come from ``rng`` (or are given).
+
 Cross-prediction (``ppi_crossfit``)
 -----------------------------------
 No separate training data: the labeled set is split into K folds, model k is fit on
@@ -87,6 +129,10 @@ Angelopoulos, Bates, Fannjiang, Jordan, Zrnic (2023). Prediction-powered inferen
 
 Angelopoulos, Duchi, Zrnic (2023). PPI++: Efficient prediction-powered inference.
 arXiv:2311.01453.
+
+Chernozhukov, Chetverikov, Demirer, Duflo, Hansen, Newey, Robins (2018).
+Double/debiased machine learning for treatment and structural parameters.
+*The Econometrics Journal* 21(1), C1-C68.
 
 Zrnic, Candès (2024). Cross-prediction-powered inference. *PNAS* 121(15),
 e2322083121. arXiv:2309.16598.
@@ -123,11 +169,13 @@ __all__ = [
     "cross_fit",
     "optimal_lambda",
     "ppi",
+    "ppi_cf_from_lambdas",
     "ppi_crossfit",
     "ppi_mean_ci",
     "ppi_mean_cov",
     "ppi_mean_pointestimate",
     "ppi_pp",
+    "ppi_pp_cf",
 ]
 
 FloatArray = NDArray[np.float64]
@@ -380,6 +428,137 @@ def ppi_pp(
         a,
         "ppi_pp",
         {"lambda_degenerate": degenerate, "lambda_clipped": clipped, "clip": clip},
+    )
+
+
+def _fold_lambda(z_out: FloatArray, f_out: FloatArray, n: int, big_n: int) -> tuple[float, bool]:
+    """Plug-in NPS-contrast lambda from out-of-fold labeled rows only (module docstring)."""
+    m = z_out.shape[0]
+    z_c = z_out - z_out.mean(axis=0)
+    f_c = f_out - f_out.mean(axis=0)
+    c_sym = (z_c.T @ f_c + f_c.T @ z_c) / m
+    v = np.atleast_2d(np.cov(f_out.T, ddof=1))
+    g = NPS_GRADIENT
+    num = float(g @ c_sym @ g)
+    den = 2.0 * (1.0 + n / big_n) * float(g @ v @ g)
+    if not den > 1e-15 * float(g @ g):
+        return 0.0, True
+    return num / den, False
+
+
+def ppi_cf_from_lambdas(
+    z: FloatArray,
+    p_lab: FloatArray,
+    p_unlab: FloatArray,
+    folds: NDArray[np.int64],
+    lambdas: FloatArray,
+    *,
+    alpha: float,
+    method: str = "ppi_pp_cf",
+    diagnostics: dict[str, Any] | None = None,
+) -> Estimate:
+    """The ``ppi_pp_cf`` point estimate and interval for given fold lambdas.
+
+    ``z`` (n, 2) indicators, ``folds`` (n,) labels in 0..K-1, ``lambdas`` (K,). See the
+    module docstring for the formulas.
+    """
+    n, big_n = z.shape[0], p_unlab.shape[0]
+    k = lambdas.shape[0]
+    counts = np.bincount(folds, minlength=k).astype(np.float64)
+    lam_i = lambdas[folds]
+    lam_bar = float(counts @ lambdas / n)
+    theta: FloatArray = (z - lam_i[:, None] * p_lab).mean(axis=0) + lam_bar * p_unlab.mean(axis=0)
+    joint = _cov0(np.concatenate([z, p_lab], axis=1))
+    c_zz, c_zf, c_ff = joint[:2, :2], joint[:2, 2:], joint[2:, 2:]
+    var_rectifier = 0.0
+    for lam, n_k in zip(lambdas, counts, strict=True):
+        cov_k = c_zz - lam * (c_zf + c_zf.T) + lam**2 * c_ff
+        var_rectifier += n_k * nps_variance(cov_k)
+    var_rectifier /= n**2
+    var_imputed = lam_bar**2 * nps_variance(_cov0(p_unlab)) / big_n
+    se = math.sqrt(max(var_imputed + var_rectifier, 0.0))
+    point = float(NPS_GRADIENT @ theta)
+    lower, upper = normal_interval(point, se, alpha)
+    _, cov_z = indicator_mean_cov(z, ddof=0)
+    var_classical = nps_variance(cov_z) / n
+    if se > 0:
+        effective_n = n * var_classical / se**2
+    else:
+        effective_n = float(n) if var_classical == 0 else math.inf
+    return Estimate(
+        point=point,
+        lower=lower,
+        upper=upper,
+        alpha=alpha,
+        se=se,
+        n_labeled=n,
+        n_unlabeled=big_n,
+        method=method,
+        diagnostics={
+            "lambda_hat": lam_bar,
+            "lambda_folds": [float(x) for x in lambdas],
+            "n_folds": int(k),
+            "promoter_share": float(theta[0]),
+            "detractor_share": float(theta[1]),
+            "se_imputed": math.sqrt(var_imputed),
+            "se_rectifier": math.sqrt(max(var_rectifier, 0.0)),
+            "effective_n": float(effective_n),
+            **(diagnostics or {}),
+        },
+    )
+
+
+def ppi_pp_cf(
+    y_lab: ArrayLike,
+    p_lab: ArrayLike,
+    p_unlab: ArrayLike,
+    *,
+    alpha: float = 0.1,
+    n_folds: int = 10,
+    folds: ArrayLike | None = None,
+    rng: np.random.Generator | None = None,
+) -> Estimate:
+    """PPI++ NPS with a cross-fitted lambda (see module docstring).
+
+    Same inputs as :func:`ppi`, plus the fold split: either ``folds`` (an (n,) array of
+    integer fold labels) or ``rng`` with ``n_folds`` (a random split into near-equal
+    folds). Every fold must leave at least 2 labeled rows outside it.
+
+    Prefer this over :func:`ppi_pp` for small surveys (roughly n < 200): it removes the
+    same-sample lambda bias. For large n the two agree.
+    """
+    a = validate_alpha(alpha)
+    z, p_l, p_u = _validated(y_lab, p_lab, p_unlab)
+    n = z.shape[0]
+    if folds is None:
+        if rng is None:
+            raise ValueError("pass folds or rng (a numpy Generator) to split the labeled rows")
+        if isinstance(n_folds, bool) or not isinstance(n_folds, int) or not 2 <= n_folds <= n:
+            raise ValueError(f"n_folds must be an integer in [2, n = {n}], got {n_folds!r}")
+        fold_ids = np.empty(n, dtype=np.int64)
+        for k, chunk in enumerate(np.array_split(rng.permutation(n), n_folds)):
+            fold_ids[chunk] = k
+    else:
+        raw = np.asarray(folds)
+        if raw.shape != (n,) or not np.issubdtype(raw.dtype, np.integer):
+            raise ValueError(f"folds must be an integer array of shape ({n},), got {raw.shape}")
+        _, inverse = np.unique(raw, return_inverse=True)
+        fold_ids = inverse.astype(np.int64)
+    k_total = int(fold_ids.max()) + 1
+    if k_total < 2:
+        raise ValueError("folds must contain at least 2 distinct folds")
+    counts = np.bincount(fold_ids, minlength=k_total)
+    if (n - counts).min() < 2:
+        raise ValueError("every fold must leave at least 2 labeled rows outside it")
+    big_n = p_u.shape[0]
+    lambdas = np.empty(k_total)
+    degenerate = 0
+    for k in range(k_total):
+        out = fold_ids != k
+        lambdas[k], deg = _fold_lambda(z[out], p_l[out], n, big_n)
+        degenerate += deg
+    return ppi_cf_from_lambdas(
+        z, p_l, p_u, fold_ids, lambdas, alpha=a, diagnostics={"lambda_degenerate_folds": degenerate}
     )
 
 

@@ -360,9 +360,13 @@ def test_registry() -> None:
         "naive_model",
         "ppi",
         "ppi_pp",
+        "ppi_pp_cf",
         "ppi_crossfit",
     }
-    assert frozenset({"classical", "ppi", "ppi_pp", "ppi_crossfit"}) == estimators.VALID_UNDER_MCAR
+    assert (
+        frozenset({"classical", "ppi", "ppi_pp", "ppi_pp_cf", "ppi_crossfit"})
+        == estimators.VALID_UNDER_MCAR
+    )
 
 
 class TestCoreValidation:

@@ -46,7 +46,7 @@ from numpy.typing import ArrayLike, NDArray
 from silent97 import estimators
 from silent97.data import schema
 from silent97.data.simulate import SimConfig, simulate_population
-from silent97.estimators.ppi import cross_fit, ppi_crossfit
+from silent97.estimators.ppi import cross_fit, ppi_crossfit, ppi_pp_cf
 from silent97.labelers.logistic import design_matrix, fit_logistic, predict_folds
 from silent97.labelers.tabular import TabularLabeler
 
@@ -365,6 +365,13 @@ def run_replicate(
             )
             folds_unlab = predict_folds(cf.predictors, prep.x[unlab_mask])
             est = ppi_crossfit(y_lab, cf.p_lab, folds_unlab, alpha=cfg.alpha)
+        elif name == "ppi_pp_cf":
+            # Its own stream, so adding it never changes the other estimators' draws.
+            fold_rng = np.random.default_rng([cfg.seed, 3, scenario_index, n, replicate])
+            est = ppi_pp_cf(
+                y_lab, p_lab, p_unlab, alpha=cfg.alpha,
+                n_folds=min(cfg.crossfit_folds, n), rng=fold_rng,
+            )  # fmt: skip
         else:
             est = estimators.REGISTRY[name](y_lab, p_lab, p_unlab, alpha=cfg.alpha)
         rows.append(
