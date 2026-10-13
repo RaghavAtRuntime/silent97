@@ -1,0 +1,25 @@
+# E3: does active sampling help at a fixed budget? (docs/PLAN.md, Experiments; A4)
+# Simulator, full response: the design decides who is surveyed. Each design is run with
+# its natural estimator (experiments/e03_active.py). Two labeler signal strengths.
+name: e03_active
+seed: 20261017
+population:
+  n_customers: 200000
+  target_nps: 20.0
+labeler:
+  n_train: 5000
+scenarios:
+  - {name: s60_uniform, mechanism: mcar, signal_strength: 0.6, design: uniform, estimators: [classical, ppi, ppi_pp_cf, ppi_active]}
+  - {name: s60_proportional, mechanism: mcar, signal_strength: 0.6, design: stratified_proportional, estimators: [classical, ppi, ppi_stratified]}
+  - {name: s60_neyman, mechanism: mcar, signal_strength: 0.6, design: stratified_neyman, estimators: [classical, ppi, ppi_stratified]}
+  - {name: s60_active, mechanism: mcar, signal_strength: 0.6, design: active, estimators: [classical, ppi, ppi_active]}
+  - {name: s90_uniform, mechanism: mcar, signal_strength: 0.9, design: uniform, estimators: [classical, ppi, ppi_pp_cf, ppi_active]}
+  - {name: s90_proportional, mechanism: mcar, signal_strength: 0.9, design: stratified_proportional, estimators: [classical, ppi, ppi_stratified]}
+  - {name: s90_neyman, mechanism: mcar, signal_strength: 0.9, design: stratified_neyman, estimators: [classical, ppi, ppi_stratified]}
+  - {name: s90_active, mechanism: mcar, signal_strength: 0.9, design: active, estimators: [classical, ppi, ppi_active]}
+estimators: [classical, ppi, ppi_pp_cf, ppi_active, ppi_stratified]
+n_labeled: [100, 200, 500, 1000]
+replicates: 1000
+alpha: 0.1
+crossfit_folds: 10
+n_jobs: 4

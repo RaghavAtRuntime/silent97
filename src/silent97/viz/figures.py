@@ -25,9 +25,11 @@ import matplotlib.pyplot as plt
 import polars as pl
 
 __all__ = [
+    "DESIGN_STYLE",
     "ESTIMATOR_STYLE",
     "apply_style",
     "coverage_figure",
+    "design_figure",
     "efficiency_figure",
     "trap_figure",
 ]
@@ -330,4 +332,63 @@ def trap_figure(
     if title:
         ax.set_title(title)
     fig.tight_layout()
+    return _save(fig, path)
+
+
+DESIGN_STYLE: Final[dict[str, dict[str, Any]]] = {
+    "uniform": {"color": "#2a78d6", "marker": "o", "label": "uniform → PPI"},
+    "stratified_proportional": {
+        "color": "#eda100", "marker": "v", "label": "stratified (proportional) → stratified PPI"
+    },
+    "stratified_neyman": {
+        "color": "#8a5a2b", "marker": "h", "label": "stratified (Neyman) → stratified PPI"
+    },
+    "active": {"color": "#0f8a8a", "marker": "P", "label": "active (1/π) → active PPI"},
+}  # fmt: skip
+
+
+def design_figure(
+    table: pl.DataFrame, path: str | Path, *, nominal: float, title: str = ""
+) -> Path:
+    """E3: mean width and coverage against n, one line per design, one row per signal.
+
+    ``table`` has ``signal``, ``model_corr``, ``n_labeled``, ``design``, ``mean_width``,
+    ``coverage``, ``coverage_lo`` and ``coverage_hi``. The coverage panels draw the nominal
+    line, the A1 band and Wilson 95% bars.
+    """
+    apply_style()
+    signals = sorted(table["signal"].unique().to_list())
+    fig, axes = plt.subplots(len(signals), 2, figsize=(11, 3.9 * len(signals)), squeeze=False)
+    for row, sig in zip(axes, signals, strict=True):
+        part = table.filter(pl.col("signal") == sig)
+        rho = float(part["model_corr"][0])
+        ax_w, ax_c = row
+        ax_c.axhspan(0.88, 0.92, color=GRID, alpha=0.6, lw=0, label="A1 band 88%-92%")
+        ax_c.axhline(nominal, color=REFERENCE, lw=1.2, label=f"nominal {nominal:.0%}")
+        for design, style in DESIGN_STYLE.items():
+            d = part.filter(pl.col("design") == design).sort("n_labeled")
+            if d.is_empty():
+                continue
+            n = d["n_labeled"].to_numpy()
+            ax_w.plot(n, d["mean_width"].to_numpy(), color=style["color"],
+                      marker=style["marker"], label=style["label"])  # fmt: skip
+            cov = d["coverage"].to_numpy()
+            err = [cov - d["coverage_lo"].to_numpy(), d["coverage_hi"].to_numpy() - cov]
+            ax_c.errorbar(n, cov, yerr=err, color=style["color"], marker=style["marker"],
+                          capsize=2.5, lw=1.4)  # fmt: skip
+        for ax in (ax_w, ax_c):
+            ax.set_xscale("log")
+            ax.set_xlabel("survey budget n (log scale)")
+        ax_w.set_yscale("log")
+        ax_w.set_ylabel("mean interval width (NPS points, log scale)")
+        ax_w.set_title(f"Interval width, signal {sig:.2f} (ρ = {rho:.2f})")
+        ax_c.set_ylabel("empirical coverage")
+        ax_c.set_ylim(0.8, 1.0)
+        ax_c.set_title(f"Coverage of nominal {nominal:.0%} intervals (Wilson 95% bars)")
+    handles, labels = axes[0][0].get_legend_handles_labels()
+    h2, l2 = axes[0][1].get_legend_handles_labels()
+    fig.legend(handles + h2, labels + l2, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.02))
+    if title:
+        fig.suptitle(title, color=TEXT_PRIMARY, fontsize=12)
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
     return _save(fig, path)

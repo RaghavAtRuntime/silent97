@@ -179,6 +179,8 @@ class Scenario:
     """Strata for stratified designs and ``ppi_stratified``: quantiles of the predicted NPS."""
     active_floor: float = 0.1
     """Uniform-floor mixing weight of the active design."""
+    estimators: tuple[str, ...] | None = None
+    """Run only these of the grid's estimators on this scenario (default: all of them)."""
 
     def __post_init__(self) -> None:
         if self.design not in DESIGNS:
@@ -265,11 +267,21 @@ class GridConfig:
             raise ValueError(f"alpha must lie in (0, 1), got {self.alpha}")
         if self.crossfit_folds < 2:
             raise ValueError(f"crossfit_folds must be >= 2, got {self.crossfit_folds}")
-        if "ppi_active" in self.estimators and any(s.design == "response" for s in self.scenarios):
-            raise ValueError(
-                "ppi_active needs known inclusion probabilities: every scenario must use a "
-                "sampling design (not 'response')"
-            )
+        for s in self.scenarios:
+            if s.estimators is not None and not set(s.estimators) <= set(self.estimators):
+                extra = sorted(set(s.estimators) - set(self.estimators))
+                raise ValueError(f"scenario {s.name!r}: estimators {extra} are not in the grid")
+            if "ppi_active" in self.scenario_estimators(s) and s.design == "response":
+                raise ValueError(
+                    f"scenario {s.name!r}: ppi_active needs known inclusion probabilities; "
+                    "use a sampling design (not 'response')"
+                )
+
+    def scenario_estimators(self, scenario: Scenario) -> tuple[str, ...]:
+        """The grid's estimators that run on ``scenario``, in grid order."""
+        if scenario.estimators is None:
+            return self.estimators
+        return tuple(e for e in self.estimators if e in scenario.estimators)
         SimConfig.from_dict(dict(self.population))  # validate overrides early
 
     @classmethod
@@ -281,6 +293,9 @@ class GridConfig:
         scenarios = []
         for raw in kw.get("scenarios", []):
             _reject_unknown(raw, {f.name for f in dataclasses.fields(Scenario)}, "scenario")
+            raw = dict(raw)
+            if raw.get("estimators") is not None:
+                raw["estimators"] = tuple(raw["estimators"])
             scenarios.append(Scenario(**raw))
         kw["scenarios"] = tuple(scenarios)
         labeler = kw.get("labeler", {}) or {}
@@ -429,7 +444,7 @@ def run_replicate(
     y_lab = prep.scores[lab]
     p_lab, p_unlab = prep.p_all[lab], prep.p_all[unlab_mask]
     rows = []
-    for name in cfg.estimators:
+    for name in cfg.scenario_estimators(prep.scenario):
         if name == "ppi_crossfit":
             cf = cross_fit(
                 prep.x[lab],

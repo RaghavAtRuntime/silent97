@@ -315,3 +315,47 @@ def test_design_scenario_validation(scenario: dict[str, object], match: str) -> 
 def test_ppi_active_needs_a_design() -> None:
     with pytest.raises(ValueError, match="ppi_active"):
         harness.GridConfig.from_dict({**SMALL, "estimators": ["ppi_active"]})
+
+
+def test_scenario_estimator_subsets() -> None:
+    cfg = harness.GridConfig.from_dict(
+        {
+            **DESIGNS,
+            "scenarios": [
+                {
+                    "name": "uniform",
+                    "mechanism": "mcar",
+                    "design": "uniform",
+                    "estimators": ["classical", "ppi"],
+                },
+                {
+                    "name": "active",
+                    "mechanism": "mcar",
+                    "design": "active",
+                    "estimators": ["classical", "ppi_active"],
+                },
+            ],
+            "estimators": ["classical", "ppi", "ppi_active"],
+            "replicates": 2,
+        }
+    )
+    res = harness.run_grid(cfg)
+    got = {s: set(res.filter(pl.col("scenario") == s)["estimator"]) for s in ("uniform", "active")}
+    assert got == {"uniform": {"classical", "ppi"}, "active": {"classical", "ppi_active"}}
+
+
+def test_scenario_estimators_must_be_configured() -> None:
+    with pytest.raises(ValueError, match="not in the grid"):
+        harness.GridConfig.from_dict(
+            {
+                **DESIGNS,
+                "scenarios": [
+                    {
+                        "name": "u",
+                        "mechanism": "mcar",
+                        "design": "uniform",
+                        "estimators": ["ppi_pp"],
+                    }
+                ],
+            }
+        )
