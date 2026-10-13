@@ -33,6 +33,7 @@ __all__ = [
     "design_figure",
     "efficiency_figure",
     "segment_figure",
+    "sensitivity_figure",
     "trap_figure",
 ]
 
@@ -457,4 +458,96 @@ def segment_figure(
     if title:
         fig.suptitle(title, color=TEXT_PRIMARY, fontsize=12)
     fig.tight_layout(rect=(0, 0.12, 1, 1))
+    return _save(fig, path)
+
+
+def sensitivity_figure(
+    curve: pl.DataFrame,
+    table: pl.DataFrame,
+    path: str | Path,
+    *,
+    marks: dict[str, dict[str, float]],
+    threshold: float,
+    nominal: float,
+    title: str = "",
+) -> Path:
+    """E7: one survey's sensitivity curve, breakpoints by n, and coverage by n.
+
+    ``curve`` has ``estimator``, ``delta``, ``point``, ``lower``, ``upper`` and
+    ``truth``; ``marks`` gives each curve estimator's ``delta_true`` and ``delta_star``.
+    ``table`` has ``scenario``, ``estimator``, ``n_labeled``, ``median_delta_star``,
+    ``coverage_at_zero`` and ``coverage_at_true`` with their Wilson bounds. Coverage
+    panels draw the nominal line, the A1 band and Wilson 95% bars: hollow markers at
+    δ = 0 (the base interval), filled at δ_true.
+    """
+    apply_style()
+    scenarios = sorted(table["scenario"].unique().to_list())
+    n_panels = 2 + len(scenarios)
+    n_rows = math.ceil(n_panels / 2)
+    fig, axes = plt.subplots(n_rows, 2, figsize=(11, 4.1 * n_rows), squeeze=False)
+    flat = axes.ravel()
+    ax = flat[0]
+    truth = float(curve["truth"][0])
+    ax.axhline(truth, color=TEXT_PRIMARY, lw=1.2, ls="--", label=f"true NPS {truth:+.1f}")
+    ax.axhline(threshold, color=REFERENCE, lw=1.0, ls=":", label=f"threshold {threshold:+g}")
+    for est in curve["estimator"].unique(maintain_order=True).to_list():
+        style = ESTIMATOR_STYLE[est]
+        c = curve.filter(pl.col("estimator") == est)
+        dx = c["delta"].to_numpy()
+        ax.fill_between(dx, c["lower"].to_numpy(), c["upper"].to_numpy(), color=style["color"],
+                        alpha=0.15, lw=0)  # fmt: skip
+        ax.plot(dx, c["point"].to_numpy(), color=style["color"], label=style["label"])
+        m = marks.get(est, {})
+        if "delta_true" in m:
+            ax.axvline(m["delta_true"], color=style["color"], lw=1.0, ls="--")
+        if m.get("delta_star", 0.0) != 0.0 and math.isfinite(m["delta_star"]):
+            ax.plot([m["delta_star"]], [threshold], color=style["color"], marker="o", ms=7)
+    ax.set_xlabel("δ (pp): non-respondents' promoter share +δ, detractor share −δ")
+    ax.set_ylabel("NPS (points)")
+    ax.set_title("One survey: estimate and 90% interval vs δ\n(dashed: δ_true; dot: δ*)")
+    ax.legend(loc="upper left", fontsize=8)
+
+    ax = flat[1]
+    for i, scen in enumerate(scenarios):
+        part = table.filter(pl.col("scenario") == scen)
+        for est in part["estimator"].unique(maintain_order=True).to_list():
+            style = ESTIMATOR_STYLE[est]
+            d = part.filter(pl.col("estimator") == est).sort("n_labeled")
+            ax.plot(d["n_labeled"].to_numpy(), d["median_delta_star"].to_numpy(),
+                    color=style["color"], marker=style["marker"], ls=("-", "--", ":")[i % 3],
+                    label=f"{style['label']} ({scen})")  # fmt: skip
+    ax.axhline(0, color=REFERENCE, lw=0.8)
+    ax.set_xscale("log")
+    ax.set_xlabel("survey responses n (log scale)")
+    ax.set_ylabel("median δ* (pp)")
+    ax.set_title(f'Breakpoint of "NPS > {threshold:+g}"')
+    ax.legend(fontsize=7)
+
+    for ax, scen in zip(flat[2:], scenarios, strict=False):
+        ax.axhspan(0.88, 0.92, color=GRID, alpha=0.6, lw=0, label="A1 band 88%-92%")
+        ax.axhline(nominal, color=REFERENCE, lw=1.2, label=f"nominal {nominal:.0%}")
+        part = table.filter(pl.col("scenario") == scen)
+        for est in part["estimator"].unique(maintain_order=True).to_list():
+            style = ESTIMATOR_STYLE[est]
+            d = part.filter(pl.col("estimator") == est).sort("n_labeled")
+            n = d["n_labeled"].to_numpy().astype(float)
+            for col, fill, shift in (("coverage_at_zero", "none", 0.97),
+                                     ("coverage_at_true", style["color"], 1.03)):  # fmt: skip
+                cov = d[col].to_numpy()
+                yerr = [np.clip(cov - d[f"{col}_lo"].to_numpy(), 0, None),
+                        np.clip(d[f"{col}_hi"].to_numpy() - cov, 0, None)]  # fmt: skip
+                ax.errorbar(n * shift, cov, yerr=yerr, color=style["color"],
+                            marker=style["marker"], mfc=fill, capsize=2.5, lw=1.2,
+                            ls="--" if fill == "none" else "-")  # fmt: skip
+        ax.set_xscale("log")
+        ax.set_ylim(0.0, 1.0)
+        ax.set_xlabel("survey responses n (log scale)")
+        ax.set_ylabel("empirical coverage")
+        ax.set_title(f"{scen}: coverage at δ = 0 (hollow) and at δ_true (filled)")
+        ax.legend(loc="lower left", fontsize=8)
+    for ax in flat[n_panels:]:
+        ax.set_visible(False)
+    if title:
+        fig.suptitle(title, color=TEXT_PRIMARY, fontsize=12)
+    fig.tight_layout()
     return _save(fig, path)

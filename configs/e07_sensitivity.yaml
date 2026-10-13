@@ -1,0 +1,25 @@
+# E7: how fragile is a conclusion? (docs/PLAN.md, Experiments; criterion A6)
+# Sensitivity curves and breakpoints from stored E4 and E6 replicate results (no
+# refitting). delta: non-respondents' promoter share +delta pp, detractor share -delta pp.
+# CFPB is not included: its outcome is binary (disputed = detractor, no promoters), so
+# the +-delta family is one-sided there (see docs/progress/phase-4.md).
+name: e07_sensitivity
+sources:
+  - name: e04
+    label: "E4 simulator, self-selected respondents (MAR, MNAR)"
+    path: data/results/e04_nonresponse.parquet
+    threshold: 10.0
+    estimators: [classical, ppi_pp_cf, mrp, mrp_ppi]
+  - name: e06_amazon
+    label: "E6 Amazon gift-card reviews, uniform survey (true delta = 0)"
+    path: data/results/e06_amazon.parquet
+    threshold: 60.0
+    estimators: [classical, ppi_pp_cf]
+delta_grid: {start: -12, stop: 12, step: 0.25}
+illustrate:
+  source: e04
+  scenario: mnar
+  n_labeled: 500
+  estimators: [ppi_pp_cf, mrp_ppi]
+  replicate: 1
+alpha: 0.1
