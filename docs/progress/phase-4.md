@@ -108,3 +108,10 @@ numbers.
     or for a comparison "difference > 0") no longer holds at the interval's edge.
   - A6 is checked by computing the simulator's *true* δ under MNAR and verifying that
     the interval at that δ covers the truth.
+
+### Decisions (reviewer, 2026-10-13)
+
+- Q1: **Poisson sampling** for the active design.
+- Q2: MRP cells **province × age band × tenure band**, with the proposed random
+  intercepts. `mrp_ppi` adds the cell-mean predicted logit.
+- Q3: **±δ percentage points** on the non-respondents' promoter and detractor shares.

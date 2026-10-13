@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: uv sync --locked  # the text extra (PyTorch) is skipped in CI; tests needing it are skipped
+        run: uv sync --locked --extra mrp  # the text extra (PyTorch) is skipped in CI; tests needing it are skipped
       - name: Lint
         run: make lint
       - name: Test
