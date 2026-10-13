@@ -275,4 +275,24 @@ n = 500, the first 20 replicates, fitted both ways with the fixed MRP.
 
 ### Checks
 
-CHECKS_PLACEHOLDER
+- `make lint`: clean (ruff, ruff format, `mypy --strict` on `estimators/` and
+  `sampling/`).
+- `make test`: **1,435 passed** in 96–100 s.
+- `make test-slow`: **24 / 24 passed** in 9 min 45 s. This includes the coverage tests
+  for `ppi_active` and `ppi_stratified` under their designs, the MRP Monte Carlo
+  coverage test, and NUTS vs Laplace.
+- Line coverage:
+
+  | `estimators/` module | coverage |
+  |---|---|
+  | `active` | 95% |
+  | `classical` | 100% |
+  | `mrp` | 93% |
+  | `nps` | 100% |
+  | `ppi` | 99% |
+  | `sensitivity` | 94% |
+  | `stratified` | 97% |
+
+  `sampling/designs.py` is at 92%. Everything is at or above the 90% bar.
+
+**Phase 4 stops here for review at Gate G4.**
