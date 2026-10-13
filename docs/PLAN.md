@@ -222,8 +222,12 @@ def estimate(y_lab, f_lab, f_unlab, *, alpha=0.1, weights=None, **kw) -> Estimat
 **Choosing among the PPI estimators (small surveys)**
 
 - Plug-in PPI++ (`ppi_pp`) estimates λ on the same responses it corrects, which adds an O(1/n) bias and an optimistic standard error at small n. On the skewed Amazon reviews (84% promoters) it was +2.2 NPS points with 0.84 coverage at n = 50. It agrees with the others from about n = 500.
-- With a calibrated labeler (λ* ≈ 1), **plain `ppi` (λ = 1) is the recommended choice below about 200 responses**: it is unbiased, its standard error is as honest as the classical one, and it was the most efficient at small n in E6.
-- `ppi_pp_cf` removes the bias at every n. Its standard error ignores the variability of the fold λs, so it is also optimistic at n ≤ 50. Use it from about n = 100 when the labeler may be miscalibrated (λ* far from 1). The evidence is in `docs/progress/phase-3.md`.
+- **Recommended default for small surveys: `ppi_pp_cf`** (cross-fitted λ). Evidence across E1, E6 CFPB and E6 reviews:
+  - it removes that bias at every n;
+  - it is inside the A1 band in 34 of 35 cells (the one miss is the finite-pool over-coverage at n = 1,000);
+  - it keeps PPI++'s protection when the labeler is miscalibrated.
+- Plain `ppi` (λ = 1) is slightly better at n ≤ 100 when the labeler is calibrated (λ* ≈ 1). Reviews, n = 50: MSE gain 2.75 vs 2.54, coverage 0.895 vs 0.872. But it can be worse than the survey alone when the labeler is not calibrated (CFPB LLM: MSE gain 0.81 at n = 1,000).
+- Below about 50 responses on very skewed data, every Wald interval is somewhat optimistic, classical included. The numbers are in `docs/progress/phase-3.md`.
 
 **Survey planning** (`eval/planning.py`)
 

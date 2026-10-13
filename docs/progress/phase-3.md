@@ -824,3 +824,77 @@ points at release **`labels-v2`**, which needs uploading (labels-v1 is supersede
      needs your approval under CLAUDE.md rules 3 and 6.
    - (c) Both.
 4. Upload `labels-v2` (send-out below).
+
+---
+
+## Session 3, continued (2026-10-13): small-n PPI++ fix (reviewer chose option c); labels-v2 published
+
+### `labels-v2`
+
+Published by the owner. The asset digest equals the pinned SHA-256 (`dba99b27…cc56`).
+Unauthenticated downloads still return 404 while the repository is private.
+
+### (b) New estimator `ppi_pp_cf`: PPI++ with a cross-fitted λ (`estimators/ppi.py`)
+
+- **Method.**
+  - The labeled rows are split into K folds (`rng` or given `folds`).
+  - λ_k is the same plug-in NPS-contrast λ as `ppi_pp`, computed from the labeled rows
+    *outside* fold k only. The unlabeled set enters only through N.
+  - θ̂ = mean_i(Z_i − λ_{k(i)} f_i) + λ̄ · mean_j f̃_j, with λ̄ = Σ_k (n_k/n) λ_k.
+  - The variance treats the λ_k as fixed and uses full-sample moments; with equal λ_k it
+    is exactly the PPI variance. This is the cross-fitting idea of DML (Chernozhukov et
+    al. 2018, *Econometrics Journal* 21(1)), applied to the tuning parameter.
+  - **Exactly unbiased:** λ_k is independent of fold k's rows and of the unlabeled set.
+    The derivation is in the module docstring.
+- **Tests first** (`tests/unit/test_ppi_pp_cf.py`, 9 tests):
+  - reduces to PPI(λ) when the fold λs are equal;
+  - the point formula holds with unequal λs;
+  - λ_k ignores fold k's answers and the unlabeled values;
+  - the fold split is reproducible;
+  - permuting rows together with their folds changes nothing;
+  - constant predictions reduce to classical;
+  - input validation;
+  - a Monte Carlo probe on a skewed population at n = 30: plug-in PPI++ bias +2.52
+    (MC se 0.17); `ppi_pp_cf` −0.06.
+- A harness test checks that adding `ppi_pp_cf` (its own random stream) leaves every other
+  estimator's results byte-identical. This was also confirmed on E1 and both E6 reruns.
+- **One existing test changed:** `tests/unit/test_ppi.py::test_registry` asserts the exact
+  set of registered estimators, and now lists `ppi_pp_cf`. The check is as strict as
+  before; it is flagged here per CLAUDE.md §1.3.
+- `ppi_pp_cf` is in `VALID_UNDER_MCAR`, so the slow suite checks it. **`make test-slow`:
+  18/18 pass**, including `ppi_pp_cf` at n = 50, 200 and 1,000.
+
+### Evidence (E1, E6 CFPB and E6 reviews rerun with `ppi_pp_cf`; other rows unchanged)
+
+| | `ppi` | `ppi_pp` | `ppi_pp_cf` |
+|---|---|---|---|
+| Reviews n = 50, bias (emb / LLM / tab) | −0.18 / −0.04 / −0.19 | **+2.23 / +1.75 / +1.15** | −0.30 / −0.06 / −0.10 |
+| Reviews n = 50, coverage | 0.895 / 0.906 / 0.888 | **0.843** / 0.869 / 0.860 | 0.872 / 0.884 / 0.865 |
+| Reviews n = 50, MSE gain vs classical | 2.75 / 2.89 / 1.32 | 1.76 / 2.28 / 1.22 | 2.54 / 2.77 / 1.24 |
+| CFPB LLM (λ* ≈ 0.1), MSE gain n = 50 / 1,000 | **0.91 / 0.81** | 0.98 / 1.00 | 0.97 / 1.00 |
+| E1 simulator n = 50, bias / coverage | +0.18 / 0.900 | +0.44 / 0.888 | +0.15 / 0.890 |
+| Cells in A1 band (all three experiments) | 34 / 35 | 34 / 35 | 34 / 35 |
+
+(The A1 misses: reviews `ppi` and `ppi_pp_cf` at n = 1,000, embedding labeler, 0.937, which
+is the finite-pool over-coverage explained above; CFPB tabular `ppi` at n = 1,000, 0.938,
+same cause; `ppi_pp` reviews n = 50, 0.843.)
+
+**Conclusion (a + b, as documented in `docs/PLAN.md`):** `ppi_pp_cf` is the recommended
+default for small surveys:
+- It is unbiased.
+- Its coverage is in the band.
+- It is close to plain PPI's efficiency when the labeler is calibrated.
+- It is safe when the labeler is not; plain PPI loses up to 19% against the survey alone
+  on CFPB.
+
+Plain PPI is marginally better at n ≤ 100 *if* the labeler is known to be calibrated.
+Plug-in `ppi_pp` is fine from about n = 500.
+
+**Remaining limitation (reported, not fixed):** at n ≤ 50 on very skewed data, `ppi_pp_cf`'s
+SE is somewhat optimistic, because the fold λs' variability is ignored. On the skewed probe
+population, reported se / empirical sd was 0.849 at n = 30 and 0.916 at n = 50; for classical
+and plain PPI it was 0.95–0.98. At n ≥ 100 all are 0.96–0.98. A variance term for the
+λ_k variability, or a bootstrap interval, would be a new interval type (CLAUDE.md rule 6)
+and is not attempted here.
+
+`make lint` is clean, `make test` gives 1,363 passed, and `make test-slow` gives 18/18.
